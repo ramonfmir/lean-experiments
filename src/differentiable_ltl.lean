@@ -20,7 +20,8 @@ inductive LTL_term : Type
 -- For the purpose of this proof, terms are just symbols indexed by nat.
 | Term : nat → LTL_term 
 
-parameter (eval_term : LTL_term → ℝ)
+-- Evaluate term t_i at time t.
+parameter (eval_term : LTL_term → ℕ → ℝ)
 
 inductive LTL_prop : Type
 | LT : LTL_term → LTL_term → LTL_prop
@@ -62,84 +63,52 @@ def eval_formula : ℕ → LTL_formula → Prop
     ∃ j >= i, (∀ k < j, (eval_formula k φ1)) ∧ (∀ k >= j, (eval_formula k φ2))
 
 inductive semi_diff
-| Const : ℝ → semi_diff
-| Term : LTL_term → semi_diff
-| Sub : semi_diff → semi_diff → semi_diff
-| If : semi_diff → semi_diff → semi_diff → semi_diff → semi_diff
-| Max : list semi_diff → semi_diff
-| Min : list semi_diff → semi_diff
-| SoftMax : ℝ → list semi_diff → semi_diff
-| SoftMin : ℝ → list semi_diff → semi_diff
+| Val : ℝ → semi_diff
+| SoftMax : ℝ → list ℝ → semi_diff
+| SoftMin : ℝ → list ℝ → semi_diff
 
 open semi_diff
 
---#print semi_diff.cases_on
---#print _nest_1_1.semi_diff.cases_on
---#print _nest_1_1._nest_1_1.semi_diff._mut_.rec
-
-@[elab_as_eliminator] protected def cases_on' :
-  Π (C : semi_diff → Sort*) (x : semi_diff),
-    (Π (a : ℝ), C (Const a)) →
-    (Π (a : LTL_term), C (Term a)) →
-    (Π (a a_1 : semi_diff), C (a.Sub a_1)) →
-    (Π (a a_1 a_2 a_3 : semi_diff), C (a.If a_1 a_2 a_3)) →
-    (Π (a : list semi_diff), C (Max a)) →
-    (Π (a : list semi_diff), C (Min a)) →
-    (Π (a : ℝ) (a_1 : list semi_diff), C (SoftMax a a_1)) →
-    (Π (a : ℝ) (a_1 : list semi_diff), C (SoftMin a a_1)) → C x :=
-sorry
-
-noncomputable def eval_semi_diff : semi_diff → ℝ 
-| (Const c) := c
-| (Term t) := eval_term t
-| (Sub x1 x2) := (eval_semi_diff x1) - (eval_semi_diff x2)
-| (If x1 x2 x3 x4) := 
-    if (eval_semi_diff x1) = (eval_semi_diff x2) 
-    then (eval_semi_diff x3) 
-    else (eval_semi_diff x4) 
-| (Max l) := 0
-    match (list.maximum (list.map eval_semi_diff l)) with
-    | none := 0 -- In practice list will never be empty.
-    | some m := m 
-    end 
-| (Min l) := 
-    match (list.minimum (list.map eval_semi_diff l)) with
-    | none := 0 -- In practice list will never be empty.
-    | some m := m 
-    end 
-| (SoftMax γ l) := γ * log((list.map (λ x, exp((eval_semi_diff x) / γ)) l).sum)
-| (SoftMin γ l) := - γ * log((list.map (λ x, exp(- (eval_semi_diff x) / γ)) l).sum)
+def eval_semi_diff : semi_diff → ℝ 
+| (Val c) := c
+| (SoftMax γ l) := γ * log(list.sum (list.map (λ x, exp(x / γ)) l))
+| (SoftMin γ l) := - γ * log(list.sum (list.map (λ x, exp(- x / γ)) l))
 
 -- Factor used for inequalities
 parameter (ζ : ℝ)
 
-def LTL_LEQ.to_semi_diff : LTL_term → LTL_term → semi_diff :=
-λ t1 t2, Max [Sub (Term t2) (Term t1), Const 0] -- Flipped from paper.
+def LTL_LEQ.to_semi_diff (i : ℕ) : LTL_term → LTL_term → semi_diff :=
+λ t1 t2, Val (max ((eval_term t1 i) - (eval_term t2 i)) 0) 
 
-def LTL_NEQ.to_semi_diff : LTL_term → LTL_term → semi_diff :=
-λ t1 t2, If (Term t1) (Term t2) (Const ζ) (Const 0) 
+def LTL_NEQ.to_semi_diff (i : ℕ) : LTL_term → LTL_term → semi_diff :=
+λ t1 t2, if (eval_term t1 i) = (eval_term t2 i) then (Val ζ) else (Val 0)
 
 def semi_diff.land : ℝ → semi_diff → semi_diff → semi_diff :=
-λ γ x1 x2, SoftMax γ [x1, x2]
+λ γ x1 x2, SoftMax γ [eval_semi_diff x1, eval_semi_diff x2]
 
 def semi_diff.lor : ℝ → semi_diff → semi_diff → semi_diff :=
-λ γ x1 x2, SoftMin γ [x1, x2]
+λ γ x1 x2, SoftMin γ [eval_semi_diff x1, eval_semi_diff x2]
 
-def LTL_prop.to_semi_diff : LTL_prop → semi_diff :=
-| (LT t1 t2) := semi_diff.land (LTL_LEQ.to_semi_diff t1 t2) (LTL_NEQ.to_semi_diff t1 t2)
-| (LEQ t1 t2) := LTL_LEQ.to_semi_diff t1 t2
-| (EQ t1 t2 ) := semi_diff.land (LTL_LEQ.to_semi_diff t1 t2) (LTL_LEQ.to_semi_diff t2 t2)
-| (GEQ t1 t2) := LTL_LEQ.to_semi_diff t2 t1
-| (GT t1 t2) := semi_diff.land (LTL_LEQ.to_semi_diff t2 t1) (LTL_NEQ.to_semi_diff t1 t2)
-| (NEQ t1 t2) := LTL_NEQ.to_semi_diff t1 t2
+def LTL_prop.to_semi_diff (i : ℕ) (γ : ℝ) : LTL_prop → semi_diff
+| (LT t1 t2) := semi_diff.land γ (LTL_LEQ.to_semi_diff i t1 t2) (LTL_NEQ.to_semi_diff i t1 t2)
+| (LEQ t1 t2) := LTL_LEQ.to_semi_diff i t1 t2
+| (EQ t1 t2 ) := semi_diff.land γ (LTL_LEQ.to_semi_diff i t1 t2) (LTL_LEQ.to_semi_diff i t2 t2)
+| (GEQ t1 t2) := LTL_LEQ.to_semi_diff i t2 t1
+| (GT t1 t2) := semi_diff.land γ (LTL_LEQ.to_semi_diff i t2 t1) (LTL_NEQ.to_semi_diff i t1 t2)
+| (NEQ t1 t2) := LTL_NEQ.to_semi_diff i t1 t2
 
-def LTL_formula.to_semi_diff : LTL_formula → semi_diff := 
-| (P p) := sorry 
-| (And φ1 φ2) := sorry
-| (Box φ) := sorry
-| (Diamond φ) := sorry 
-| (Next φ) := sorry 
-| (Until φ1 φ2) := sorry 
-| (Neg φ) := sorry 
+-- Max time.
+parameter (T : ℕ)
+
+def LTL_formula.to_semi_diff (i : ℕ) (γ : ℝ) : LTL_formula → semi_diff := 
+| (P p) := LTL_prop.to_semi_diff i γ p
+| (And φ1 φ2) := semi_diff.land γ (LTL_formula.to_semi_diff i γ φ1) (LTL_formula.to_semi_diff i γ φ2)
+| (Box φ) := SoftMax γ 
+    (list.map (λ j, eval_semi_diff (LTL_formula.to_semi_diff (i + j) γ φ)) (list.range (T - i)))
+| (Diamond φ) := SoftMin γ 
+    (list.map (λ j, eval_semi_diff (LTL_formula.to_semi_diff (i + j) γ φ)) (list.range (T - i))) 
+| (Next φ) := Val 0 
+| (Until φ1 φ2) := Val 0 
+| (Neg φ) := Val 0
 
 end LTL
