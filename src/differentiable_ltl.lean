@@ -100,15 +100,20 @@ def LTL_prop.to_semi_diff (i : ℕ) (γ : ℝ) : LTL_prop → semi_diff
 -- Max time.
 parameter (T : ℕ)
 
-def LTL_formula.to_semi_diff (i : ℕ) (γ : ℝ) : LTL_formula → semi_diff := 
-| (P p) := LTL_prop.to_semi_diff i γ p
-| (And φ1 φ2) := semi_diff.land γ (LTL_formula.to_semi_diff i γ φ1) (LTL_formula.to_semi_diff i γ φ2)
-| (Box φ) := SoftMax γ 
+-- Lean bug? I get:
+--      "Equation compiler failed to generate bytecode for 'LTL_formula.to_semi_diff._main'
+--       nested exception message:
+--       code generation failed, VM does not have code for 'classical.choice'"
+-- which is fixed by adding 'noncomputable'
+noncomputable def LTL_formula.to_semi_diff : ℕ → ℝ → LTL_formula → semi_diff
+| i γ (P p) := LTL_prop.to_semi_diff i γ p
+| i γ (And φ1 φ2) := semi_diff.land γ (LTL_formula.to_semi_diff i γ φ1) (LTL_formula.to_semi_diff i γ φ2)
+| i γ (Box φ) := SoftMax γ 
     (list.map (λ j, eval_semi_diff (LTL_formula.to_semi_diff (i + j) γ φ)) (list.range (T - i)))
-| (Diamond φ) := SoftMin γ 
+| i γ (Diamond φ) := SoftMin γ 
     (list.map (λ j, eval_semi_diff (LTL_formula.to_semi_diff (i + j) γ φ)) (list.range (T - i))) 
-| (Next φ) := Val 0 
-| (Until φ1 φ2) := Val 0 
-| (Neg φ) := Val 0
+| i γ (Next φ) := Val 0 
+| i γ (Until φ1 φ2) := Val 0 
+| i γ (Neg φ) := Val 0
 
 end LTL
