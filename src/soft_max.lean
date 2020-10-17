@@ -67,6 +67,7 @@ namespace soft_max
 #check continuous.prod_map
 #check fin.cast_succ 0
 
+
 -- Lemma 1.a: soft_max.num is continuous everywhere.
 lemma num.continuity_at : ∀ α v, continuous_at (soft_max.num n α) v := 
 begin
@@ -104,6 +105,8 @@ begin
           ext x i,
           simp, },
         -- Continue.
+        show continuous_at (flip ((λ (i : fin (m.succ + 1)) (x : fin (m.succ + 1) → ℝ), x i) ∘ fin.cast_succ)) v,
+        -- Continuous flip lemma? To mathlib?
         sorry,
         } }, 
     { -- This we have already proved, so factor that out and re-use.
