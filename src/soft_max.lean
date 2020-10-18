@@ -4,7 +4,6 @@
 -- Second attempt using fin n → ℝ.
 
 import data.real.basic
-import data.list.min_max
 import data.complex.exponential
 import analysis.complex.basic
 import analysis.special_functions.pow
@@ -62,11 +61,6 @@ def soft_max (α : ℝ) : (fin (n + 1) → ℝ) → ℝ :=
 λ v, (soft_max.num n α v) / (soft_max.den n α v)
 
 namespace soft_max
-
--- TEMP
-#check continuous.prod_map
-#check fin.cast_succ 0
-
 
 -- Lemma 1.a: soft_max.num is continuous everywhere.
 lemma num.continuity_at : ∀ α v, continuous_at (soft_max.num n α) v := 
