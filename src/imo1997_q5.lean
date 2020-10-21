@@ -6,17 +6,41 @@ import analysis.special_functions.pow
 
 set_option eqn_compiler.zeta true
 
-#check ge_iff_le.1
+#check nat.factors
 
 --http://sms.math.nus.edu.sg/Simo/IMO_Problems/97.pdf
 lemma IMO1997Q5_aux :
 ∀ (a t : ℕ), a > 1 ∧ t ≥ 1 → ¬ (a ^ (2 * t) = a * t) :=
 sorry
 
---lemma IMO1997Q5_aux2 :
---∀ (a p q : ℕ), nat.coprime p q → 
---(((a : ℝ) ^ ((rat.mk p q) : ℝ)) : ℚ).denom = 1 →
---(((a : ℝ) ^ ((rat.mk 1 q) : ℝ)) : ℚ).denom = 1
+#check  mul_div_cancel_left
+
+lemma IMO1997Q5_aux2 :
+∀ (a p q : ℕ), (
+  q ≠ 0 →
+  nat.coprime p q → 
+  (∃ (n : ℕ), (a : ℝ) ^ (p / q : ℝ) = (n : ℝ)) →
+  (∃ (m : ℕ), (a : ℝ) ^ (1 / q : ℝ) = (m : ℝ))) :=
+begin
+  rintros a p q hqneq0 hpq ⟨n, hn⟩,
+  have hqneq0' : (q : ℝ) ≠ 0 := λ h, hqneq0 (nat.cast_eq_zero.1 h),
+  suffices hsuff : ∃ (k : ℕ), a = k ^ q,
+  { cases hsuff with k hk,
+    existsi k,
+    have h0lek : 0 ≤ (k : ℝ) := (nat.cast_le.2 (nat.zero_le k)),
+    rw [hk, nat.cast_pow, ←real.rpow_nat_cast, one_div, ←real.rpow_mul h0lek],
+    rw [mul_comm, inv_mul_cancel hqneq0'],
+    norm_num, },
+  -- ∃ (k : ℕ), a = k ^ q
+  replace hn := congr_arg (λ x, x ^ (q : ℝ)) hn; dsimp at hn,
+  rw [←real.rpow_mul (nat.cast_le.2 (nat.zero_le a))] at hn,
+  rw [mul_comm, ←mul_div_assoc, mul_div_cancel_left _ hqneq0'] at hn,
+  iterate 2 { rw [real.rpow_nat_cast, ←nat.cast_pow] at hn, },
+  replace hn := nat.cast_inj.1 hn,
+  have hnfactors := congr_arg nat.factors hn,
+  -- Idea: Use pnat.factors_multiset instead.
+  sorry,
+end
 
 lemma IMO1997Q5 : 
 ∀ (a b : ℕ), 
