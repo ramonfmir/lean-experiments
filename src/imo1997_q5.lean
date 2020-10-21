@@ -13,6 +13,11 @@ lemma IMO1997Q5_aux :
 ∀ (a t : ℕ), a > 1 ∧ t ≥ 1 → ¬ (a ^ (2 * t) = a * t) :=
 sorry
 
+--lemma IMO1997Q5_aux2 :
+--∀ (a p q : ℕ), nat.coprime p q → 
+--(((a : ℝ) ^ ((rat.mk p q) : ℝ)) : ℚ).denom = 1 →
+--(((a : ℝ) ^ ((rat.mk 1 q) : ℝ)) : ℚ).denom = 1
+
 lemma IMO1997Q5 : 
 ∀ (a b : ℕ), 
 a ≥ 1 ∧ b ≥ 1 ∧ a ^ (b ^ 2) = b ^ a → 
