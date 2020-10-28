@@ -4,6 +4,8 @@ import tactic.ring
 
 open real
 
+-- https://sms.math.nus.edu.sg/Simo/IMO_Problems/00.pdf
+
 lemma AG_GM_inequality (x y : nnreal) : sqrt (x * y) ≤ (x + y) / 2 :=
 begin
     have h : 0 ≤ (sqrt x - sqrt y) * (sqrt x - sqrt y) := mul_self_nonneg _,
