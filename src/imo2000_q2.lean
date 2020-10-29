@@ -19,7 +19,7 @@ end
 #check lt_irrefl
 
 -- Note this didnt work with nnreals..
-lemma IMO2000Q2_aux (x y z : ℝ) (hposx : 0 < x) (hposy : 0 < y) (hposz : 0 < z) 
+lemma IMO2000Q2_aux {x y z : ℝ} (hposx : 0 < x) (hposy : 0 < y) (hposz : 0 < z) 
 : (x - y + z) * (y - z + x) * (z - x + y) ≤ x * y * z :=
 begin
     set u := x - y + z with hu,
@@ -110,18 +110,24 @@ begin
       linarith [h], },
 end
 
-lemma IMO2000Q2 (a b c : nnreal) (h : a * b * c = 1) :
+lemma IMO2000Q2 (a b c : ℝ) (hposa : 0 < a) (hposb : 0 < b) (hposc : 0 < c) (h : a * b * c = 1) :
 (a - 1 + 1 / b) * (b - 1 + 1 / c) * (c - 1 + 1 / a) ≤ 1 :=
 begin
-    have han0 : a ≠ 0 := sorry, -- Easy.
-    have hbn0 : b ≠ 0 := sorry, -- Easy.
+    have han0 : a ≠ 0 := ne_of_gt hposa,
+    have hbn0 : b ≠ 0 := ne_of_gt hposb,
+    have hcn0 : c ≠ 0 := ne_of_gt hposc,
     set! x := a * b with hx,
     set! y := b with hy,
     set! z := a * b * c with hz,
-    have hxn0 : x ≠ 0 := sorry, -- Easy.
-    have hyn0 : y ≠ 0 := sorry, -- Easy.
-    have hzn0 : z ≠ 0 := sorry, -- Easy.
-    have hxyzgt0 : x * y * z > 0 := sorry, -- Easy.
+    have hposx : 0 < x := mul_pos hposa hposb,
+    have hposy : 0 < y := hposb,
+    have hposz : 0 < z := mul_pos (mul_pos hposa hposb) hposc,
+    have hxn0 : x ≠ 0 := ne_of_gt hposx,
+    have hyn0 : y ≠ 0 := ne_of_gt hposy,
+    have hzn0 : z ≠ 0 := ne_of_gt hposz,
+    have hxyzgt0 : x * y * z > 0,
+    { rw [hx, hy, hz],
+      exact mul_pos (mul_pos (mul_pos hposa hposb) hposb) (mul_pos (mul_pos hposa hposb) hposc), },
     have ha : a = x / y,
     { rw [hx, hy, mul_comm, mul_div_cancel_left _ hbn0], },
     have hb : b = y / z, 
@@ -133,8 +139,14 @@ begin
     apply (le_of_mul_le_mul_left _ hxyzgt0),
     rw mul_one,
     calc  x * y * z * ((x / y - 1 + z / y) * (y / z - 1 + x / z) * (z / x - 1 + y / x))
-        = (y * (x / y - 1 + z / y)) * (z * (y / z - 1 + x / z)) * (x * (z / x - 1 + y / x)) : by ring
-    ... = (y * x / y - y + y * z / y) * (z * y / z - z + z * x / z) * (x * z / x - x + x * y / x) : sorry -- by ring doesn't work
-    ... = (x - y + z) * (y - z + x) * (z - x + y) : sorry -- repeated rewriting mul_div_cancel_left
-    ... ≤ x * y * z : sorry,
+        = (y * (x / y - 1 + z / y)) * (z * (y / z - 1 + x / z)) * (x * (z / x - 1 + y / x)) 
+        : by ring
+    ... = (y * x / y - y + y * z / y) * (z * y / z - z + z * x / z) * (x * z / x - x + x * y / x) 
+        : by rw [mul_add y, mul_sub y, mul_one y, ←mul_div_assoc' y x y, ←mul_div_assoc' y z y,
+                 mul_add z, mul_sub z, mul_one z, ←mul_div_assoc' z y z, ←mul_div_assoc' z x z,
+                 mul_add x, mul_sub x, mul_one x, ←mul_div_assoc' x z x, ←mul_div_assoc' x y x]
+    ... = (x - y + z) * (y - z + x) * (z - x + y) 
+        : by iterate 2 { rw [mul_div_cancel_left _ hxn0, mul_div_cancel_left _ hyn0, mul_div_cancel_left _ hzn0] }
+    ... ≤ x * y * z 
+        : by exact (IMO2000Q2_aux hposx hposy hposz),
 end
