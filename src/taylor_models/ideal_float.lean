@@ -2,6 +2,9 @@ import data.int.basic
 import data.real.basic
 import data.buffer.parser
 import tactic.find
+import analysis.special_functions.pow
+
+import taylor_models.zpow
 
 open parser
 
@@ -26,8 +29,8 @@ x.m * (2 ^ x.e)
 
 -- Needed.
 
-def zpow : has_pow ℤ ℤ := sorry
-local attribute [instance] zpow
+instance : has_pow ℤ ℤ := ⟨zpow⟩
+--local attribute [instance] zpow
 
 -- Basic operations.
 
@@ -52,14 +55,29 @@ by simp only [align]; split_ifs; refl
 : align x y = ⟨x.m * 2 ^ (x.e - y.e), y.m, y.e⟩ := 
 by simp only [align]; split_ifs; refl
 
+-- TODO: Move
+lemma zpow_real_cast (x y : ℤ) (hy : 0 ≤ y) : ((zpow x y) : ℝ) = (x : ℝ) ^ (y : ℝ) :=
+begin
+    sorry,
+end 
+
 lemma align_spec (x y : 𝔽) : 
 let a := align x y in
 to_real x = to_real ⟨a.1, a.2.2⟩ ∧ to_real y = to_real ⟨a.2.1, a.2.2⟩ :=
 begin 
     intros a,
     split; by_cases (x.e ≤ y.e); simp*,
-    -- These should be solved by norm_num or ring, but zpow is not defined...
-    { sorry, },
+    { replace h := sub_nonneg.2 (le_of_not_le h),
+      erw [zpow_real_cast _ _ h],
+      erw [mul_assoc],
+      have h2 : ((2 : ℤ) : ℝ) = (2 : ℝ) := by norm_num,
+      rw h2,
+      rw ←real.rpow_int_cast,
+      rw ←real.rpow_int_cast,
+      erw [←real.rpow_add _ ↑(x.e - y.e)],
+      simp,
+      norm_num,
+       },
     { sorry, },
 end
 
