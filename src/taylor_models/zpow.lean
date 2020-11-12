@@ -2,6 +2,8 @@ import data.int.basic
 
 def zpow (x : ℤ) (y : ℤ) : ℤ := x ^ int.to_nat y
 
+namespace zpow
+
 instance : has_pow ℤ ℤ := ⟨zpow⟩
 
 @[simp] lemma zpow_eq_pow (x y : ℤ) : zpow x y = x ^ y := rfl
@@ -62,3 +64,5 @@ by simp only [zpow_def, int.to_nat_mul hy hz]; exact (pow_mul x _ _)
 
 @[simp] lemma zpow_nat_cast (x : ℤ) : ∀ (n : ℕ), x ^ (n : ℤ) = x ^ n := 
 λ n, by simp only [zpow_def]; rw int.to_nat_coe_nat
+
+end zpow

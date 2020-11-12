@@ -6,7 +6,7 @@ import analysis.special_functions.pow
 
 import taylor_models.zpow
 
-open parser
+open parser zpow
 
 structure ideal_float :=
 (m : ℤ)
@@ -58,7 +58,9 @@ by simp only [align]; split_ifs; refl
 -- TODO: Move
 lemma zpow_real_cast (x y : ℤ) (hy : 0 ≤ y) : ((zpow x y) : ℝ) = (x : ℝ) ^ (y : ℝ) :=
 begin
-    sorry,
+    simp only [zpow_eq_pow, zpow_def],
+    lift y to ℕ using hy,
+    rw [real.rpow_int_cast, int.to_nat_coe_nat], norm_num,
 end 
 
 lemma align_spec (x y : 𝔽) : 
@@ -66,19 +68,16 @@ let a := align x y in
 to_real x = to_real ⟨a.1, a.2.2⟩ ∧ to_real y = to_real ⟨a.2.1, a.2.2⟩ :=
 begin 
     intros a,
+    have h2 : ((2 : ℤ) : ℝ) = (2 : ℝ) := by norm_num,
     split; by_cases (x.e ≤ y.e); simp*,
     { replace h := sub_nonneg.2 (le_of_not_le h),
-      erw [zpow_real_cast _ _ h],
-      erw [mul_assoc],
-      have h2 : ((2 : ℤ) : ℝ) = (2 : ℝ) := by norm_num,
-      rw h2,
-      rw ←real.rpow_int_cast,
-      rw ←real.rpow_int_cast,
-      erw [←real.rpow_add _ ↑(x.e - y.e)],
-      simp,
-      norm_num,
-       },
-    { sorry, },
+      erw [zpow_real_cast _ _ h, mul_assoc, h2],
+      erw [←real.rpow_int_cast, ←real.rpow_int_cast, ←real.rpow_add],
+      simp, norm_num, },
+    { replace h := sub_nonneg.2 h,
+      erw [zpow_real_cast _ _ h, mul_assoc, h2],
+      erw [←real.rpow_int_cast, ←real.rpow_int_cast, ←real.rpow_add],
+      simp, norm_num, },
 end
 
 def neg (x : 𝔽) : 𝔽 :=
