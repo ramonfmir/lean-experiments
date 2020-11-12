@@ -69,15 +69,11 @@ to_real x = to_real ⟨a.1, a.2.2⟩ ∧ to_real y = to_real ⟨a.2.1, a.2.2⟩ 
 begin 
     intros a,
     have h2 : ((2 : ℤ) : ℝ) = (2 : ℝ) := by norm_num,
-    split; by_cases (x.e ≤ y.e); simp*,
-    { replace h := sub_nonneg.2 (le_of_not_le h),
-      erw [zpow_real_cast _ _ h, mul_assoc, h2],
-      erw [←real.rpow_int_cast, ←real.rpow_int_cast, ←real.rpow_add],
-      simp, norm_num, },
-    { replace h := sub_nonneg.2 h,
-      erw [zpow_real_cast _ _ h, mul_assoc, h2],
-      erw [←real.rpow_int_cast, ←real.rpow_int_cast, ←real.rpow_add],
-      simp, norm_num, },
+    split; by_cases (x.e ≤ y.e); simp*;
+    try { erw [zpow_real_cast _ _ (sub_nonneg.2 (le_of_not_le h))], };
+    try { erw [zpow_real_cast _ _ (sub_nonneg.2 h)], };
+    erw [mul_assoc, h2, ←real.rpow_int_cast, ←real.rpow_int_cast, ←real.rpow_add];
+    simp; norm_num,
 end
 
 def neg (x : 𝔽) : 𝔽 :=
@@ -92,11 +88,23 @@ let ⟨mx, my, e⟩ := align x y in ⟨mx - my, e⟩
 def mul (x y : 𝔽) : 𝔽 :=
 ⟨x.m * y.m, x.e * y.e⟩
 
-instance : has_zero 𝔽 := ⟨zero⟩
-instance : has_one 𝔽 := ⟨one⟩
-instance : has_neg 𝔽 := ⟨neg⟩
-instance : has_add 𝔽 := ⟨add⟩
-instance : has_sub 𝔽 := ⟨sub⟩
-instance : has_mul 𝔽 := ⟨mul⟩
+instance : comm_ring 𝔽 := {
+    zero := zero,
+    one := one,
+    neg := neg,
+    add := add,
+    mul := mul,
+    zero_add := λ x, sorry,
+    add_zero := λ x, sorry,
+    add_left_neg := sorry,
+    add_comm := sorry,
+    add_assoc := λ x y z, sorry,
+    one_mul := sorry,
+    mul_one := sorry,
+    mul_comm := sorry,
+    mul_assoc := sorry,
+    left_distrib := sorry,
+    right_distrib := sorry,
+}
 
 end ideal_float
