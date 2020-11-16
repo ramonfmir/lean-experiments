@@ -45,9 +45,27 @@ else ⟨x.m * 2 ^ (x.e - y.e), y.m, y.e⟩
 : align x y = ⟨x.m, y.m * 2 ^ (y.e - x.e), x.e⟩ := 
 by simp only [align]; split_ifs; refl
 
+@[simp] lemma align_le.mx {x y : 𝔽} (h : x.e ≤ y.e) : (align x y).1 = x.m := 
+by simp [align_le h]
+
+@[simp] lemma align_le.my {x y : 𝔽} (h : x.e ≤ y.e) : (align x y).2.1 = y.m * 2 ^ (y.e - x.e) := 
+by simp [align_le h]
+
+@[simp] lemma align_le.e {x y : 𝔽} (h : x.e ≤ y.e) : (align x y).2.2 = x.e := 
+by simp [align_le h]
+
 @[simp] lemma align_not_le {x y : 𝔽} (h : ¬ (x.e ≤ y.e)) 
 : align x y = ⟨x.m * 2 ^ (x.e - y.e), y.m, y.e⟩ := 
 by simp only [align]; split_ifs; refl
+
+@[simp] lemma align_not_le.mx {x y : 𝔽} (h : ¬ (x.e ≤ y.e)) : (align x y).1 = x.m * 2 ^ (x.e - y.e) :=
+by simp [align_not_le h]
+
+@[simp] lemma align_not_le.my {x y : 𝔽} (h : ¬ (x.e ≤ y.e)) : (align x y).2.1 = y.m :=
+by simp [align_not_le h]
+
+@[simp] lemma align_not_le.e {x y : 𝔽} (h : ¬ (x.e ≤ y.e)) : (align x y).2.2 = y.e :=
+by simp [align_not_le h]
 
 -- TODO: Move
 lemma zpow_rat_cast (x y : ℤ) (hy : 0 ≤ y) : ((zpow x y) : ℚ) = (x : ℚ) ^ (y : ℤ) :=
@@ -76,13 +94,20 @@ def neg (x : 𝔽) : 𝔽 :=
 def add (x y : 𝔽) : 𝔽 :=
 let ⟨mx, my, e⟩ := align x y in ⟨mx + my, e⟩
 
-set_option trace.eqn_compiler.elim_match true
-
 lemma add.def (x y : 𝔽) : add x y = ⟨(align x y).1 + (align x y).2.1, (align x y).2.2⟩ := 
-sorry
+begin 
+    unfold add, by_cases (x.e ≤ y.e),
+    { simp only [align_le.mx h, align_le.my h, align_le.e h],
+      unfold align, split_ifs, refl, },
+    { simp only [align_not_le.mx h, align_not_le.my h, align_not_le.e h],
+      unfold align, split_ifs, refl, }
+end 
 
 lemma add.m (x y : 𝔽) : (add x y).m = (align x y).1 + (align x y).2.1 :=
-sorry
+by rw [add.def]; refl
+
+lemma add.e (x y : 𝔽) : (add x y).e = (align x y).2.2 :=
+by rw [add.def]; refl
 
 def sub (x y : 𝔽) : 𝔽 :=
 let ⟨mx, my, e⟩ := align x y in ⟨mx - my, e⟩
@@ -104,8 +129,31 @@ set_option pp.beta true
 lemma to_rat.add {x y x' y' : 𝔽} (h : to_rat x = to_rat y) (h' : to_rat x' = to_rat y')
 : to_rat (add x x') = to_rat (add y y') :=
 begin 
-    simp only [to_rat_mk] at *,
-    by_cases (x.e ≤ x'.e); sorry,
+    have h2 : ((2 : ℤ) : ℚ) = (2 : ℚ) := by norm_num, -- TODO: I hate this.
+    simp only [to_rat_mk, add.m, add.e] at *,
+    by_cases (x.e ≤ x'.e); replace hx := h; clear h;
+    by_cases (y.e ≤ y'.e); replace hy := h; clear h;
+    try { simp only [align_le.mx hx, align_le.my hx, align_le.e hx], };
+    try { simp only [align_le.mx hy, align_le.my hy, align_le.e hy], };
+    try { simp only [align_not_le.mx hx, align_not_le.my hx, align_not_le.e hx], };
+    try { simp only [align_not_le.mx hy, align_not_le.my hy, align_not_le.e hy], };
+    push_cast; rw [add_mul, add_mul],
+    { rw [h, mul_assoc, mul_assoc],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 hx), h2, ←fpow_add],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 hy), h2, ←fpow_add],
+      simp, rw [h'], norm_num, norm_num, },
+    { rw [h, mul_assoc, mul_assoc],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 hx), h2, ←fpow_add],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 (le_of_not_le hy)), h2, ←fpow_add],
+      simp, rw [←h'], norm_num, norm_num, },
+    { rw [h', mul_assoc, mul_assoc],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 (le_of_not_le hx)), h2, ←fpow_add],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 hy), h2, ←fpow_add],
+      simp, rw [h], norm_num, norm_num, },
+    { rw [h', mul_assoc, mul_assoc],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 (le_of_not_le hx)), h2, ←fpow_add],
+      erw [zpow_rat_cast _ _ (sub_nonneg.2 (le_of_not_le hy)), h2, ←fpow_add],
+      simp, rw [←h], norm_num, norm_num, }
 end 
 
 -- 𝔽 is not a ring but 𝔽/R where R(x,y) iff to_rat x = to_rat y is a ring.
@@ -128,16 +176,19 @@ instance : comm_ring 𝔽R := {
     zero := ⟦zero⟧,
     one := ⟦one⟧,
     neg := quotient.lift (λ x, ⟦neg x⟧) (λ a b h, quotient.sound $ to_rat.neg h),
-    add := add,
-    mul := mul,
+    add := quotient.lift₂ (λ x y, ⟦add x y⟧) (λ a₁ a₂ b₁ b₂ h₁ h₂, quotient.sound $ to_rat.add h₁ h₂),
+    mul := sorry,
     zero_add := λ x, begin
-       --cases x,
-       dsimp only [has_add.add, add],
-       by_cases (zero.e ≤ x.e),
-       { rw [align_le h], simp, 
-         --show ⟨x.m * 2 ^ x.e, 0⟩ = x, 
-         sorry, },
-       { sorry, }, 
+        have h2 : ((2 : ℤ) : ℚ) = (2 : ℚ) := by norm_num,
+        apply quotient.induction_on x,
+        rintros a, apply quotient.sound,
+        simp only [add.def],
+        show to_rat _ = to_rat a,
+        by_cases (zero.e ≤ a.e),
+        { simp only [align_le.mx h, align_le.my h, align_le.e h, to_rat_mk],
+          push_cast, erw [zpow_rat_cast _ _ (sub_nonneg.2 h), h2], simp,  },
+        { simp only [align_not_le.mx h, align_not_le.my h, align_not_le.e h, to_rat_mk],
+          push_cast, erw [zpow_rat_cast _ _ (sub_nonneg.2 (le_of_not_le h)), h2], simp, }
     end,
     add_zero := λ x, sorry,
     add_left_neg := sorry,
