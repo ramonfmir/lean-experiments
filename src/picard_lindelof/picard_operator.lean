@@ -13,28 +13,43 @@ open_locale topological_space classical filter
 
 section picard_operator
 
-variables {E : Type*} [normed_group E] [normed_space ℝ E]
-          [second_countable_topology E]
-          [complete_space E] [measurable_space E]
-          [borel_space E]
+-- NOTE: This is meant to be [a, b].
+variables {A : Type*} [linear_order A] [measurable_space A]
+          [topological_space A] [compact_space A]
 
--- TODO: Should probably be from Icc a b. 
-variables {t0 : ℝ} {f : ℝ → E → E}
+variables (μ : measure A)
 
-def picard_operator_raw (x : C(ℝ, E)) :=
-λ t, (x t0) + ∫ s in t0..t, (f s (x s))
+-- NOTE: This is meant to be ℝ^n.
+variables {B : Type*} [normed_group B] [normed_space ℝ B]
+          [second_countable_topology B]
+          [complete_space B] [measurable_space B]
+          [borel_space B]
+
+variables (t0 : A) (f : A → B → B)
+
+def picard_operator_raw (x : C(A, B)) :=
+λ t, (x t0) + ∫ s in t0..t, (f s (x s)) ∂μ
+
+#check nhds_basis_ball.tendsto_iff
+#check nhds_basis_ball.tendsto_iff nhds_basis_closed_ball
 
 lemma picard_operator_raw_continuous 
-: ∀ (x : C(ℝ, E)), continuous (@picard_operator_raw E _ _ _ _ _ _ t0 f x) :=
-sorry
+: ∀ (x : C(A, B)), continuous (picard_operator_raw μ t0 f x) :=
+begin 
+    intros x,
+    rw continuous_iff_continuous_at,
+    intros a,
+    unfold continuous_at,
+    sorry,
+end 
 
-def picard_operator : C(ℝ, E) → C(ℝ, E) :=
-λ x, ⟨picard_operator_raw x, @picard_operator_raw_continuous E _ _ _ _ _ _ t0 f x⟩
+def picard_operator : C(A, B) → C(A, B) :=
+λ x, ⟨picard_operator_raw μ t0 f x, picard_operator_raw_continuous μ t0 f x⟩
 
-instance : has_edist C(ℝ, E) := sorry
+instance : has_edist C(A, B) := sorry
 --⟨λ x y, supr (λ t, ∥(x t) - (y t)∥)⟩
 
-instance : metric_space C(ℝ, E) := sorry
+instance : metric_space C(A, B) := sorry
 
 -- Ideally, we can show that it is a Banach space.
 --instance : normed_group C(Icc a b, E) := sorry
@@ -43,8 +58,8 @@ instance : metric_space C(ℝ, E) := sorry
 
 variables (K : nnreal) (hK : K < 1)
 
-lemma picard_operator_lischitz 
-: lipschitz_with K (@picard_operator E _ _ _ _ _ _ t0 f) :=
+lemma picard_operator_lipschitz 
+: lipschitz_with K (picard_operator μ t0 f) :=
 sorry 
 
 end picard_operator
