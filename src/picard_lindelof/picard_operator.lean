@@ -1,6 +1,7 @@
 import analysis.calculus.mean_value
 import topology.continuous_map
 import measure_theory.interval_integral
+import topology.metric_space.contracting
 
 -- Banach fixed point theorem:
 -- https://github.com/leanprover-community/mathlib/blob/f25340175631cdc85ad768a262433f968d0d6450/src/topology/metric_space/lipschitz.lean#L110
@@ -30,36 +31,70 @@ variables (t0 : A) (f : A → B → B)
 def picard_operator_raw (x : C(A, B)) :=
 λ t, (x t0) + ∫ s in t0..t, (f s (x s)) ∂μ
 
-#check nhds_basis_ball.tendsto_iff
-#check nhds_basis_ball.tendsto_iff nhds_basis_closed_ball
-
 lemma picard_operator_raw_continuous 
 : ∀ (x : C(A, B)), continuous (picard_operator_raw μ t0 f x) :=
 begin 
-    intros x,
-    rw continuous_iff_continuous_at,
-    intros a,
-    unfold continuous_at,
-    sorry,
+    intros x, rw continuous_iff_continuous_at,
+    intros a, unfold continuous_at,
+    sorry, 
+    -- Perhaps just deduce this from Lipschitz.
 end 
 
 def picard_operator : C(A, B) → C(A, B) :=
 λ x, ⟨picard_operator_raw μ t0 f x, picard_operator_raw_continuous μ t0 f x⟩
 
-instance : has_edist C(A, B) := sorry
---⟨λ x y, supr (λ t, ∥(x t) - (y t)∥)⟩
+-- Should be easy. Assuming A and B nonempty.
+instance : nonempty C(A, B) := sorry
 
-instance : metric_space C(A, B) := sorry
+instance : has_edist C(A, B) := ⟨λ x y, supr (λ t, edist (x t) (y t))⟩
+
+instance : emetric_space C(A, B) := {
+    edist_self := begin 
+        intros x, unfold edist, erw [supr_eq_bot], 
+        intros t, erw [metric_space.edist_dist, metric_space.dist_self],
+        norm_num,
+    end,
+    eq_of_edist_eq_zero := begin 
+        intros x y h, unfold edist at h, erw [supr_eq_bot] at h,
+        ext i, replace h := h i, erw [metric_space.edist_dist, ennreal.of_real_eq_zero] at h,
+        replace h := le_antisymm h dist_nonneg,
+        exact metric_space.eq_of_dist_eq_zero h,
+    end,
+    edist_comm := begin
+        intros x y, unfold edist, apply le_antisymm,
+        { rw supr_le_iff, intros i, 
+          erw [metric_space.edist_dist, metric_space.dist_comm, ←metric_space.edist_dist],
+          exact (le_supr (λ t, metric_space.edist (y t) (x t)) i), },
+        { -- TODO: Avoid repetition.
+          rw supr_le_iff, intros i, 
+          erw [metric_space.edist_dist, metric_space.dist_comm, ←metric_space.edist_dist],
+          exact (le_supr (λ t, metric_space.edist (x t) (y t)) i), }
+    end,
+    edist_triangle := begin
+        intros x y z, unfold edist, sorry,
+        -- We know dx ≤ dx + dy.
+        -- Hence sup dx ≤ sup (dx + dy).
+        -- And also sup (dx + dy) ≤ sup dx + sup dy.
+        -- So we are done.
+    end,
+}
+
+instance : complete_space C(A, B) := sorry
 
 -- Ideally, we can show that it is a Banach space.
 --instance : normed_group C(Icc a b, E) := sorry
 --instance : normed_space ℝ C(Icc a b, E) := sorry
---instance : complete_space ℝ C(Icc a b, E) := sorry
+--instance : complete_space C(Icc a b, E) := sorry
 
 variables (K : nnreal) (hK : K < 1)
 
 lemma picard_operator_lipschitz 
 : lipschitz_with K (picard_operator μ t0 f) :=
 sorry 
+
+def picard_efixed_point : C(A, B) := 
+contracting_with.efixed_point (picard_operator μ t0 f) ⟨hK, picard_operator_lipschitz μ t0 f K⟩ sorry sorry
+
+#check picard_efixed_point μ t0 f K hK
 
 end picard_operator
