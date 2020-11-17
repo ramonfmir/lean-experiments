@@ -23,25 +23,10 @@ lemma Sup_add_le_add_Sup
 : Sup (A + B) ≤ (Sup A) + (Sup B) :=
 Sup_le $ λ _ ⟨a, b, ha, hb, hx⟩, (hx ▸ add_le_add (le_Sup ha) (le_Sup hb))
 
--- THIS IS FALSE..!
--- have : set.range (s + t) = (set.range s) + (set.range t),
--- { ext, split,
---   { rintros ⟨i, hi⟩, 
---     replace hi : (s i) + (t i) = x := hi,
---     rw set.mem_add, 
---     use [s i, t i, by simp, by simp, hi], },
---   { intros hx,
---     rw set.mem_add at hx,
---     rcases hx with ⟨a, b, ⟨ia, ha⟩, ⟨ib, hb⟩, hx⟩,
---     rw [←hx, ←ha, ←hb],  }, },
--- sorry,
-
 lemma supr_add_le_add_supr 
 {α : Type*} [complete_ordered_add_comm_monoid α] {ι : Type*} (s t : ι → α)
 : supr (s + t) ≤ (supr s) + (supr t) :=
-begin
-    sorry,
-end
+supr_le $ λ i, add_le_add (le_supr s i) (le_supr t i)
 
 end to_mathlib
 
