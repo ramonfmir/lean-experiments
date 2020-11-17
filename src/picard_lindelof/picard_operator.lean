@@ -17,6 +17,10 @@ instance to_complete_lattice {α : Type*} [complete_ordered_add_comm_monoid α]
 instance to_ordered_add_comm_monoid {α : Type*} [complete_ordered_add_comm_monoid α] 
 : ordered_add_comm_monoid α := { .._inst_1 }
 
+noncomputable instance ennreal.complete_ordered_add_comm_monoid 
+: complete_ordered_add_comm_monoid ennreal := 
+{ ..ennreal.canonically_ordered_comm_semiring }
+
 -- TODO: to mathlib.
 lemma Sup_add_le_add_Sup 
 {α : Type*} [complete_ordered_add_comm_monoid α] {A B : set α} 
@@ -75,7 +79,6 @@ instance : nonempty C(A, B) := sorry
 
 instance : has_edist C(A, B) := ⟨λ x y, supr (λ t, edist (x t) (y t))⟩
 
-
 instance : emetric_space C(A, B) := {
     edist_self := begin 
         intros x, unfold edist, erw [supr_eq_bot], 
@@ -100,13 +103,19 @@ instance : emetric_space C(A, B) := {
     end,
     edist_triangle := begin
         intros x y z, unfold edist,
-        have := @metric_space.dist_triangle B _,
-        
-        
-        -- We know dx ≤ dx + dy.
-        -- Hence sup dx ≤ sup (dx + dy).
-        -- And also sup (dx + dy) ≤ sup dx + sup dy.
-        -- So we are done.
+        suffices hle1 : 
+            supr (λ t, metric_space.edist (x t) (z t)) ≤
+            supr (λ t, (metric_space.edist (x t) (y t)) + (metric_space.edist (y t) (z t))),
+        { have hle2 := supr_add_le_add_supr 
+            (λ t, metric_space.edist (x t) (y t))
+            (λ t, metric_space.edist (y t) (z t)),
+          exact (le_trans hle1 hle2), },
+        rw supr_le_iff, intros i, 
+        have hxyz := metric_space.dist_triangle (x i) (y i) (z i),
+        replace hxyz := ennreal.of_real_le_of_real hxyz,
+        replace hxyz := le_trans hxyz ennreal.of_real_add_le,
+        repeat { rw [←metric_space.edist_dist] at hxyz, },
+        exact (@le_supr_of_le _ _ _ (λ t, metric_space.edist (x t) (y t) + metric_space.edist (y t) (z t)) _ i hxyz),
     end,
 }
 
