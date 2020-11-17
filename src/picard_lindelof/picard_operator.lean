@@ -3,6 +3,48 @@ import topology.continuous_map
 import measure_theory.interval_integral
 import topology.metric_space.contracting
 
+section to_mathlib
+
+-- TODO: Is there a better way?
+class complete_ordered_add_comm_monoid (α : Type*) 
+extends complete_lattice α, add_comm_monoid α :=
+(add_le_add_left : ∀ (a b : α), a ≤ b → ∀ (c : α), c + a ≤ c + b)
+(lt_of_add_lt_add_left : ∀ (a b c : α), a + b < a + c → b < c)
+
+instance to_complete_lattice {α : Type*} [complete_ordered_add_comm_monoid α] 
+: complete_lattice α := by apply_instance
+
+instance to_ordered_add_comm_monoid {α : Type*} [complete_ordered_add_comm_monoid α] 
+: ordered_add_comm_monoid α := { .._inst_1 }
+
+-- TODO: to mathlib.
+lemma Sup_add_le_add_Sup 
+{α : Type*} [complete_ordered_add_comm_monoid α] {A B : set α} 
+: Sup (A + B) ≤ (Sup A) + (Sup B) :=
+Sup_le $ λ _ ⟨a, b, ha, hb, hx⟩, (hx ▸ add_le_add (le_Sup ha) (le_Sup hb))
+
+-- THIS IS FALSE..!
+-- have : set.range (s + t) = (set.range s) + (set.range t),
+-- { ext, split,
+--   { rintros ⟨i, hi⟩, 
+--     replace hi : (s i) + (t i) = x := hi,
+--     rw set.mem_add, 
+--     use [s i, t i, by simp, by simp, hi], },
+--   { intros hx,
+--     rw set.mem_add at hx,
+--     rcases hx with ⟨a, b, ⟨ia, ha⟩, ⟨ib, hb⟩, hx⟩,
+--     rw [←hx, ←ha, ←hb],  }, },
+-- sorry,
+
+lemma supr_add_le_add_supr 
+{α : Type*} [complete_ordered_add_comm_monoid α] {ι : Type*} (s t : ι → α)
+: supr (s + t) ≤ (supr s) + (supr t) :=
+begin
+    sorry,
+end
+
+end to_mathlib
+
 -- Banach fixed point theorem:
 -- https://github.com/leanprover-community/mathlib/blob/f25340175631cdc85ad768a262433f968d0d6450/src/topology/metric_space/lipschitz.lean#L110
 
@@ -48,6 +90,7 @@ instance : nonempty C(A, B) := sorry
 
 instance : has_edist C(A, B) := ⟨λ x y, supr (λ t, edist (x t) (y t))⟩
 
+
 instance : emetric_space C(A, B) := {
     edist_self := begin 
         intros x, unfold edist, erw [supr_eq_bot], 
@@ -71,7 +114,10 @@ instance : emetric_space C(A, B) := {
           exact (le_supr (λ t, metric_space.edist (x t) (y t)) i), }
     end,
     edist_triangle := begin
-        intros x y z, unfold edist, sorry,
+        intros x y z, unfold edist,
+        have := @metric_space.dist_triangle B _,
+        
+        
         -- We know dx ≤ dx + dy.
         -- Hence sup dx ≤ sup (dx + dy).
         -- And also sup (dx + dy) ≤ sup dx + sup dy.
