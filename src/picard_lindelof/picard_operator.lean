@@ -40,14 +40,15 @@ end to_mathlib
 -- Following Imperial's MA2AA1 notes.
 
 noncomputable theory
-open metric set asymptotics filter real measure_theory interval_integral topological_space
-open_locale topological_space classical filter
+open metric set asymptotics filter real measure_theory interval_integral topological_space uniform_space
+open_locale topological_space classical filter uniformity
 
 section picard_operator
 
 -- NOTE: This is meant to be [a, b].
 variables {A : Type*} [linear_order A] [measurable_space A]
-          [topological_space A] [compact_space A]
+          [topological_space A] [compact_space A] [nonempty A]
+          [uniform_space A] [complete_space A] -- Maybe
 
 variables (μ : measure A)
 
@@ -55,7 +56,8 @@ variables (μ : measure A)
 variables {B : Type*} [normed_group B] [normed_space ℝ B]
           [second_countable_topology B]
           [complete_space B] [measurable_space B]
-          [borel_space B]
+          [borel_space B] [nonempty B]
+          [complete_lattice B] -- Maybe
 
 variables (t0 : A) (f : A → B → B)
 
@@ -119,7 +121,25 @@ instance : emetric_space C(A, B) := {
     end,
 }
 
-instance : complete_space C(A, B) := sorry
+#check sequentially_complete.seq
+#check image_le_of_liminf_slope_right_lt_deriv_boundary
+#check @cauchy_seq.tendsto_lim 
+
+lemma h : complete_space C(A, B) := 
+begin 
+    apply emetric.complete_of_cauchy_seq_tendsto,
+    intros u hu,
+    --have hu' := cauchy_seq.tendsto_lim hu,
+    let f := λ x, (lim at_top (λ n, ((u n) x))), 
+    have hf : continuous f := sorry,
+    --have h := tendsto_nhds_lim,
+    use [⟨f, hf⟩],
+    rw emetric.cauchy_seq_iff at hu,
+    rw emetric.tendsto_nhds,
+    intros ε hε, 
+    replace hu := hu ε hε,
+    sorry,
+end 
 
 -- Ideally, we can show that it is a Banach space.
 --instance : normed_group C(Icc a b, E) := sorry
