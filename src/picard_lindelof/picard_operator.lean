@@ -121,21 +121,6 @@ instance : emetric_space C(A, B) := {
     end,
 }
 
-#check sequentially_complete.seq
-#check image_le_of_liminf_slope_right_lt_deriv_boundary
-#check @cauchy_seq.tendsto_lim 
-#check dist_le_of_le_geometric_two_of_tendsto₀
-#check @edist_mem_uniformity
-#check @ennreal.of_real_lt_of_real_iff
-#check @ennreal.of_real
-#check @dist_eq_norm
-#check metric_space.edist_dist
-#check ennreal.of_real_lt_of_real_iff
-#check dist_eq_norm
-#print ennreal.coe_to_real
-#check finset.supr_coe
---#find (_ - _) _ = (_ _) - (_ _)
-
 open continuous_functions
 
 instance : ring C(A, B) := continuous_map_ring
@@ -144,11 +129,12 @@ instance : ring C(A, B) := continuous_map_ring
 private lemma ennreal.of_real_supr {ι : Type*} (f : ι → ℝ) 
 : ennreal.of_real (supr f) = supr (λ t, ennreal.of_real (f t)) := 
 begin 
-    unfold ennreal.of_real, unfold nnreal.of_real,
-    sorry,
+    ext, split,
+    { sorry, },
+    { sorry, }
 end 
 
-lemma continuous_complete : complete_space C(A, B) := 
+instance : complete_space C(A, B) := 
 begin 
     apply emetric.complete_of_cauchy_seq_tendsto,
     intros u hu,
@@ -167,7 +153,7 @@ begin
       unfold edist at hujN,
       -- TODO: Prove some nice properties of edist.
       have heq : (λ (t : A), metric_space.edist ((u j) t) ((u N) t)) =
-                 (λ (t : A), ennreal.of_real ∥(((u j) - (u N)) t)∥ ),
+                 (λ (t : A), ennreal.of_real (norm (((u j) - (u N)) t))),
       { funext, erw [←dist_eq_norm, metric_space.edist_dist], },
       apply (ennreal.of_real_lt_of_real_iff hε).1,
       rw ennreal.of_real_supr, 
@@ -189,10 +175,9 @@ begin
     sorry,
 end 
 
--- Ideally, we can show that it is a Banach space.
---instance : normed_group C(Icc a b, E) := sorry
---instance : normed_space ℝ C(Icc a b, E) := sorry
---instance : complete_space C(Icc a b, E) := sorry
+-- IDEA: Work with metric_space! This way avoid supr nightmare.
+
+-- NOTE: Might need to show that C(A, B) is also normed_group and normed_space.
 
 variables (K : nnreal) (hK : K < 1)
 
