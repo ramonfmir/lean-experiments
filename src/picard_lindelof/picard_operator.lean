@@ -2,6 +2,8 @@ import analysis.calculus.mean_value
 import topology.continuous_map
 import measure_theory.interval_integral
 import topology.metric_space.contracting
+import topology.metric_space.cau_seq_filter
+import topology.algebra.continuous_functions
 
 section to_mathlib
 
@@ -34,10 +36,7 @@ supr_le $ λ i, add_le_add (le_supr s i) (le_supr t i)
 
 end to_mathlib
 
--- Banach fixed point theorem:
--- https://github.com/leanprover-community/mathlib/blob/f25340175631cdc85ad768a262433f968d0d6450/src/topology/metric_space/lipschitz.lean#L110
-
--- Following Imperial's MA2AA1 notes.
+-- Following Imperial's MA2AA1 notes and Ch 2 of 'Spectral Theory and Quantum Mechanics'.
 
 noncomputable theory
 open metric set asymptotics filter real measure_theory interval_integral topological_space uniform_space
@@ -57,7 +56,7 @@ variables {B : Type*} [normed_group B] [normed_space ℝ B]
           [second_countable_topology B]
           [complete_space B] [measurable_space B]
           [borel_space B] [nonempty B]
-          [complete_lattice B] -- Maybe
+          [complete_lattice B] [ring B] [topological_ring B] -- Maybe
 
 variables (t0 : A) (f : A → B → B)
 
@@ -76,8 +75,9 @@ end
 def picard_operator : C(A, B) → C(A, B) :=
 λ x, ⟨picard_operator_raw μ t0 f x, picard_operator_raw_continuous μ t0 f x⟩
 
--- Should be easy. Assuming A and B nonempty.
-instance : nonempty C(A, B) := sorry
+instance : nonempty C(A, B) := ⟨⟨λ (a : A), @nonempty.some B (by apply_instance), continuous_const⟩⟩
+
+instance : has_norm C(A, B) := ⟨λ x, supr (λ t, norm (x t))⟩
 
 instance : has_edist C(A, B) := ⟨λ x y, supr (λ t, edist (x t) (y t))⟩
 
@@ -124,20 +124,68 @@ instance : emetric_space C(A, B) := {
 #check sequentially_complete.seq
 #check image_le_of_liminf_slope_right_lt_deriv_boundary
 #check @cauchy_seq.tendsto_lim 
+#check dist_le_of_le_geometric_two_of_tendsto₀
+#check @edist_mem_uniformity
+#check @ennreal.of_real_lt_of_real_iff
+#check @ennreal.of_real
+#check @dist_eq_norm
+#check metric_space.edist_dist
+#check ennreal.of_real_lt_of_real_iff
+#check dist_eq_norm
+#print ennreal.coe_to_real
+#check finset.supr_coe
+--#find (_ - _) _ = (_ _) - (_ _)
 
-lemma h : complete_space C(A, B) := 
+open continuous_functions
+
+instance : ring C(A, B) := continuous_map_ring
+
+-- TODO: Move
+private lemma ennreal.of_real_supr {ι : Type*} (f : ι → ℝ) 
+: ennreal.of_real (supr f) = supr (λ t, ennreal.of_real (f t)) := 
+begin 
+    unfold ennreal.of_real, unfold nnreal.of_real,
+    sorry,
+end 
+
+lemma continuous_complete : complete_space C(A, B) := 
 begin 
     apply emetric.complete_of_cauchy_seq_tendsto,
     intros u hu,
-    --have hu' := cauchy_seq.tendsto_lim hu,
-    let f := λ x, (lim at_top (λ n, ((u n) x))), 
+    have huε : is_cau_seq norm u,
+    { cases cauchy_iff.1 hu with hu1 hu2,
+      intros ε hε,
+      have hεrw := (ennreal.of_real_lt_of_real_iff hε),
+      have hennε := hεrw.2 hε,
+      rw ennreal.of_real_zero at hennε,
+      rcases hu2 {x | edist x.1 x.2 < ennreal.of_real ε} (edist_mem_uniformity hennε) with ⟨t, ⟨ht, htsub⟩⟩,
+      simp at ht, cases ht with N hN,
+      existsi N, intros j hj,
+      unfold has_norm.norm,
+      have hujN := @htsub (u j, u N) (set.mk_mem_prod (hN j hj) (hN N (le_refl N))),
+      simp at hujN,
+      unfold edist at hujN,
+      -- TODO: Prove some nice properties of edist.
+      have heq : (λ (t : A), metric_space.edist ((u j) t) ((u N) t)) =
+                 (λ (t : A), ennreal.of_real ∥(((u j) - (u N)) t)∥ ),
+      { funext, erw [←dist_eq_norm, metric_space.edist_dist], },
+      apply (ennreal.of_real_lt_of_real_iff hε).1,
+      rw ennreal.of_real_supr, 
+      sorry,
+      -- TODO: So close. Will this work when ennreal.of_real_supr is proved?
+      --erw ←heq,
+      --exact hujN,
+      },
+
+    let fn := λ x n, (u n) x,
+    let f := λ x, (lim at_top (fn x)), 
     have hf : continuous f := sorry,
     --have h := tendsto_nhds_lim,
     use [⟨f, hf⟩],
     rw emetric.cauchy_seq_iff at hu,
     rw emetric.tendsto_nhds,
     intros ε hε, 
-    replace hu := hu ε hε,
+
     sorry,
 end 
 
