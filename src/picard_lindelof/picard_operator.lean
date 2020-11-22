@@ -24,6 +24,7 @@ parameter (μ : measure A)
 -- NOTE: This is meant to be ℝ^n.
 parameters {B : Type*} [normed_group B] [normed_space ℝ B] [measurable_space B]
                        [complete_space B] [second_countable_topology B] [borel_space B]
+                       [linear_order B]
           
 
 parameters (t0 : A) (x0 : B) (f : A → B → B)
@@ -77,30 +78,55 @@ private lemma le_csupr_iff.mpr
 : a ≤ supr s := 
 h (supr s) (λ i, le_csupr hs i)
 
--- TODO: Prove something of the form:
--- bdd_above (range (λ (t : A), dist (⇑(P x) t) (⇑(P y) t))).
+-- TODO: Can we prove this?
+lemma P.dist_bdd_above (x y : A →ᵇ B) 
+: ∃ C, ∀ t, dist (P x t) (P y t) ≤ C :=
+begin 
+    dsimp [dist],
+    sorry,
+end 
 
-lemma P.edist_eq_supr (x y : A →ᵇ B) 
-: edist (P x) (P y) = supr (λ t, edist (P x t) (P y t)) :=
+lemma P.edist_eq_Inf (x y : A →ᵇ B) (h : edist (P x) (P y) ≠ ⊤)
+: edist (P x) (P y) = Inf {C | 0 ≤ C ∧ ∀ (a : A), edist (P x a) (P y a) ≤ C} :=
 begin
-    unfold edist, unfold metric_space.edist,
-    let S := {C : ℝ | 0 ≤ C ∧ ∀ (x_1 : A), dist ((P x) x_1) ((P y) x_1) ≤ C},
-    show ennreal.of_real (Inf S) = _,
+    let S := {C : ℝ | 0 ≤ C ∧ ∀ (a : A), dist (P x a) (P y a) ≤ C},
     have hS : S.nonempty, 
     { use [supr (λ t, dist ((P x) t) ((P y) t))], split,
       { eapply le_csupr_iff.mpr,
-        { sorry, },
+        { rcases (P.dist_bdd_above x y) with ⟨C, hC⟩,
+          use C, rintros d ⟨a, hd⟩, rw ←hd, exact (hC a), },
         { intros b h,
           replace h := h (nonempty.some (by apply_instance)),
           exact (le_trans dist_nonneg h), }, },
       { apply le_csupr,
-        { sorry, }, }, },
+        { rcases (P.dist_bdd_above x y) with ⟨C, hC⟩,
+          use C, rintros d ⟨a, hd⟩, rw ←hd, exact (hC a), }, }, },
     have hSbdd : bdd_below S,
     { use 0, intros x hx, exact hx.1, },
     have h := map_cInf_of_continuous_at_of_monotone 
         (ennreal.continuous_at_of_real (Inf S)) ennreal.monotone_of_real hS hSbdd,
-    rw h, -- Is this even useful?
+    unfold edist, unfold metric_space.edist,
+    rw h, simp only [S, set.image], dsimp, 
     sorry,
+    -- Issue with C maybe being ⊤. But I believe that's because the sets won't
+    -- be the same, but the infimums will
+    
+    -- congr, ext C, split,
+    -- { rintros ⟨c, ⟨⟨h0lec, hdist⟩, hC⟩⟩, split,
+    --   { rw ←hC, replace h0lec := ennreal.of_real_le_of_real h0lec,
+    --     rw ennreal.of_real_zero at h0lec, exact h0lec, },
+    --   { intros a, rw ←hC,
+    --     have hdista := hdist a,
+    --     erw metric_space.edist_dist,
+    --     exact (ennreal.of_real_le_of_real hdista), }, },
+    -- { rintros ⟨h0leC, hedist⟩, by_cases (C = ⊤),
+    --   {  },
+    --   { use [ennreal.to_real C], split,
+    --     { split,
+    --         { exact ennreal.to_real_nonneg, },
+    --         { intros a, have hedista := hedist a,
+    --         erw metric_space.edist_dist at hedista, sorry, }, },
+    --     { sorry, }, }, },
 end 
 
 parameters (K : nnreal) (hK : K < 1)
@@ -119,8 +145,12 @@ begin
     exact hle,
 end 
 
---private lemma interval_integral.integral_mono
-s
+-- TODO: Move.
+private lemma interval_integral.integral_mono 
+{f g : A → B} (a b : A)
+(hf : interval_integrable f μ a b) (hg : interval_integrable g μ a b) (h : f ≤ g)
+: ∫ t in a..b, f a ∂μ ≤ ∫ t in a..b, g t ∂μ := sorry
+
 lemma P.lipschitz_at_of_lipshitz 
 (hf : ∀ s, lipschitz_with K (f s)) (t : A) (ht : t0 ≤ t) (x y : A →ᵇ B) 
 (hx : interval_integrable (λ t, f t (x t)) μ t0 t) (hy : interval_integrable (λ t, f t (y t)) μ t0 t)
@@ -148,7 +178,10 @@ begin
             -- TODO: Factor this out. Argument about edist dist and le.
             have hrw : (λ s, dist (f s (x s)) (f s (y s))) ≤ (λ s, K * dist (x s) (y s)) := sorry,
             -- This follows from interval_integral.integral_mono.
-            sorry
+            have h := interval_integral.integral_mono μ t0 t hx hy,
+            -- TODO: We also need that dist is integrable... Arguments above
+            -- should not be hx and hy..
+            sorry,
          end
          -- Then we use norm_integral_le_of_norm_le_const
          -- Bound it above by the supremum!
@@ -161,8 +194,9 @@ lemma P.lipschitz_of_lipschitz (hf : ∀ s, lipschitz_with K (f s))
 : lipschitz_with K P :=
 begin 
     intros x y,
+    let S := {C | 0 ≤ C ∧ ∀ (a : A), edist (P x a) (P y a) ≤ C},
     calc edist (P x) (P y) 
-        = supr (λ t, edist (P x t) (P y t)) : P.edist_eq_supr x y
+        = Inf S : P.edist_eq_Inf x y sorry -- NOTE: Is this even useful?
     ... ≤ ↑K * edist x y : sorry --supr_le (λ t, P.lipschitz_at_of_lipshitz hf t x y),
 end 
 
@@ -171,6 +205,6 @@ end
 def P.efixed_point_of_lipschitz (hf : ∀ s, lipschitz_with K (f s)) : A →ᵇ B := 
 contracting_with.efixed_point P ⟨hK, P.lipschitz_of_lipschitz hf⟩ sorry sorry
 
-#check contracting_with.efixed_point P
+--#check contracting_with.efixed_point P
 
 end picard_operator
