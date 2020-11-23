@@ -111,11 +111,4 @@ def P (x : C(E)) (I : IVP(x)) : C(E) := {
 @[simp] lemma P.def (x : C(E)) (I : IVP(x)) (t : ℝ)
 : P x I t = I.x₀ + ∫ s in x.t₀..t, I.v s (x s) := rfl
 
--- Initial value problem.
-parameters (x : locally_bounded_continuous_function)
-           (hx₀ : x t₀ = x₀) 
-           (hx_deriv : ∀ t ∈ Ioc t₀ t₁, has_deriv_within_at x (v t (x t)) (Ioi t) t)
-           (hv_integrable : interval_integrable (λ t, v t (x t)) volume t₀ t₁)
-           (hv_bdd : ∃ C, 0 < C ∧ ∀ t ∈ Ioc t₀ t₁, ∥v t (x t)∥ ≤ C)
-
 end picard_operator

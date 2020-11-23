@@ -5,28 +5,18 @@ import picard_lindelof.definitions
 noncomputable theory
 open metric set asymptotics filter real measure_theory 
 open interval_integral topological_space uniform_space
+open picard_operator
 open_locale topological_space classical filter uniformity 
 
 section picard_lindelof
 
-parameter (μ : measure ℝ)
-
 -- NOTE: This is meant to be ℝ^n.
-parameters {B : Type*} [normed_group B] [normed_space ℝ B] [measurable_space B]
-                       [complete_space B] [second_countable_topology B] [borel_space B]
-                       [linear_order B]
-          
+variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
+                      [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-parameters (t0 : ℝ) (x0 : B) (f : ℝ → B → B) (hf : ∀ s, continuous (f s))
 
-local infixr ` →ᵇ `:25 := bounded_continuous_function
-
-parameters (K : nnreal) (hK : K < 1)
-
-lemma P.lipschitz_at_of_lipshitz 
-(hf : ∀ s, lipschitz_with K (f s)) (t : ℝ) (ht : t0 ≤ t) (x y : ℝ →ᵇ B) 
-(hx : interval_integrable (λ t, f t (x t)) μ t0 t) (hy : interval_integrable (λ t, f t (y t)) μ t0 t)
-: edist (P x t) (P y t) ≤ ↑K * edist x y :=
+lemma P.lipschitz_at_of_lipshitz (x y : C(E)) (Ix : IVP(x)) (Iy : IVP(y))
+: edist (P x Ix) (P y Iy) ≤ ↑(I.K) * edist x.to_fun y.to_fun :=
 begin 
     simp, unfold edist, unfold metric_space.edist,
     rw metric_space.edist_dist, cases K with K hK,
