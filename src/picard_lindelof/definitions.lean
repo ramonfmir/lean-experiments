@@ -1,5 +1,4 @@
 import measure_theory.interval_integral
-import topology.bounded_continuous_function
 
 import picard_lindelof.other.interval_integral
 
@@ -9,76 +8,83 @@ noncomputable theory
 open metric real set measure_theory interval_integral topological_space
 open_locale topological_space  
 
-section picard_operator
+-- NOTE: A is meant to be ℝ^n. Think of these as functions [t₀, t₁] → ℝ^n.
+structure locally_bounded_real_continuous_function (A : Type*) 
+[measurable_space A] [normed_group A] [borel_space A] [linear_order A]
+[normed_space ℝ A] [complete_space A] [second_countable_topology A] :=
+(to_fun : ℝ → A)
+(t₀ t₁ : ℝ) (ht : t₀ ≤ t₁)
+(hdom : function.support to_fun ⊆ Icc t₀ t₁)
+(hcts : continuous_on to_fun (Icc t₀ t₁))
 
-local infixr ` →ᵇ `:25 := bounded_continuous_function
+namespace picard_operator
 
--- NOTE: This is meant to be ℝ^n.
-parameters {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
-                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
+notation `C(` A `)` := locally_bounded_real_continuous_function A
 
--- Initial value problem.
-parameters (t₀ t₁ : ℝ) (x₀ : E) (v : ℝ → E → E) (x : ℝ →ᵇ E) 
-           (hx₀ : x t₀ = x₀) (ht : t₀ ≤ t₁)
-           (hx_cts : continuous_on x (Icc t₀ t₁))
-           (hx_deriv : ∀ t ∈ Ioc t₀ t₁, has_deriv_within_at x (v t (x t)) (Ioi t) t)
-           (hv_integrable : interval_integrable (λ t, v t (x t)) volume t₀ t₁)
+variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
+                      [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
--- Assume v is globally Lipshitz and bounded.
-parameters (K : nnreal) (hK : K < 1)
-           (hv_lipschitz : ∀ s, lipschitz_with K (v s))
-           (hv_bdd : ∃ C, 0 < C ∧ ∀ t ∈ Ioc t₀ t₁, ∥v t (x t)∥ ≤ C)
+instance : has_coe_to_fun C(E) := ⟨_, locally_bounded_real_continuous_function.to_fun⟩
+
+structure initial_value_problem (x : C(E)) :=
+(x₀ : E) (v : ℝ → E → E)
+(K : nnreal) (hK : K < 1)
+(hlipschitz : ∀ s, lipschitz_with K (v s))
+(hbdd : ∃ C, 0 < C ∧ ∀ t ∈ Ico x.t₀ x.t₁, ∥v t (x t)∥ ≤ C)
+(hintegrable : interval_integrable (λ s, v s (x s)) volume x.t₀ x.t₁)
+
+notation `IVP(` x `)` := initial_value_problem x
 
 open bounded_continuous_function
 
 -- The Picard operator as a function.
-def P.to_fun : ℝ → E := λ t, x₀ + ∫ s in t₀..t, v s (x s)
+def P.to_fun (x : C(E)) (I : IVP(x)) : ℝ → E := λ t, I.x₀ + ∫ s in x.t₀..t, I.v s (x s)
 
-def P.to_fun.dist_eq (a b : ℝ)
-: dist (P.to_fun a) (P.to_fun b) = ∥∫ s in a..b, v s (x s)∥ :=
+def P.to_fun.dist_eq (x : C(E)) (I : IVP(x)) (a b : ℝ)
+: dist (P.to_fun x I a) (P.to_fun x I b) = ∥∫ s in a..b, I.v s (x s)∥ :=
 begin 
     rw dist_eq_norm, simp only [P.to_fun],
     have hrw1 : 
-        x₀ + (∫ s in t₀..a, v s (x s)) - (x₀ + ∫ s in t₀..b, v s (x s)) =
-        (∫ s in t₀..a, v s (x s)) - (∫ s in t₀..b, v s (x s)) := by abel,
+        I.x₀ + (∫ s in x.t₀..a, I.v s (x s)) - (I.x₀ + ∫ s in x.t₀..b, I.v s (x s)) =
+        (∫ s in x.t₀..a, I.v s (x s)) - (∫ s in x.t₀..b, I.v s (x s)) := by abel,
     rw hrw1, clear hrw1,
-    rw [interval_integral.integral_symm a t₀],
+    rw [interval_integral.integral_symm a x.t₀],
     have hrw2 :
-        -(∫ s in a..t₀, v s (x s)) - (∫ s in t₀..b, v s (x s)) =
-        -((∫ s in a..t₀, v s (x s)) + (∫ s in t₀..b, v s (x s))) := by abel,
+        -(∫ s in a..x.t₀, I.v s (x s)) - (∫ s in x.t₀..b, I.v s (x s)) =
+        -((∫ s in a..x.t₀, I.v s (x s)) + (∫ s in x.t₀..b, I.v s (x s))) := by abel,
     rw hrw2, clear hrw2,
     have hadd :
-        (∫ s in a..t₀, v s (x s)) + (∫ s in t₀..b, v s (x s)) =
-        ∫ s in a..b, v s (x s), 
-    { -- These can be proved from hv_integrable and integrable_on.mono.
-      have hleft : interval_integrable (λ s, v s (x s)) volume a t₀ := sorry,
-      have hright : interval_integrable (λ s, v s (x s)) volume t₀ b := sorry,
+        (∫ s in a..x.t₀, I.v s (x s)) + (∫ s in x.t₀..b, I.v s (x s)) =
+        ∫ s in a..b, I.v s (x s), 
+    { -- These can be proved from hintegrable and integrable_on.mono.
+      have hleft : interval_integrable (λ s, I.v s (x s)) volume a x.t₀ := sorry,
+      have hright : interval_integrable (λ s, I.v s (x s)) volume x.t₀ b := sorry,
       exact (integral_add_adjacent_intervals hleft hright), },
     rw [hadd, norm_neg],
 end
 
-include ht hv_bdd
-
 -- The Picard operator is continuous.
-lemma P.to_fun.continuous_on 
-: continuous_on P.to_fun (Icc t₀ t₁) :=
+lemma P.to_fun.continuous_on (x : C(E)) (I : IVP(x))
+: continuous_on (P.to_fun x I) (Icc x.t₀ x.t₁) :=
 begin
-    rcases hv_bdd with ⟨C, ⟨hCpos, hC⟩⟩,
+    rcases I.hbdd with ⟨C, ⟨hCpos, hC⟩⟩,
     rw metric.continuous_on_iff,
     intros a ha ε hε, use [ε/C, div_pos hε hCpos],
-    intros b hb hab, erw [P.to_fun.dist_eq a b],
-    have hboundab : ∀ s, s ∈ Ioc (min b a) (max b a) → ∥v s (x s)∥ ≤ C,
+    intros b hb hab, rw [P.to_fun.dist_eq x I],
+    have hboundab : ∀ s, s ∈ Ico (min b a) (max b a) → ∥I.v s (x s)∥ ≤ C,
     { by_cases (a ≤ b),
-      { rw [min_eq_right h, max_eq_left h], intros s hs, apply (hC s), },
-      { rw [min_eq_left h, max_eq_right h], intros s hs, sorry, }, },
-    have hbound := interval_integral.norm_integral_le_of_norm_le_const hboundab,
-    rw [dist_eq_norm, norm_eq_abs] at hab,
-    replace hab := mul_lt_mul_of_pos_left hab hCpos,
-    rw [←mul_div_assoc, mul_div_cancel_left ε (ne_of_lt hCpos).symm, abs_sub] at hab,
-    exact lt_of_le_of_lt hbound hab,
+      { rw [min_eq_right h, max_eq_left h], 
+        intros s hs, apply (hC s), 
+        --exact ⟨le_trans ha.1 hs.1, le_of_lt (lt_of_lt_of_le hs.2)⟩,
+        sorry, },
+      { rw [min_eq_left (le_of_not_le h), max_eq_right (le_of_not_le h)], 
+        intros s hs, sorry, }, },
+    -- have hbound := interval_integral.norm_integral_le_of_norm_le_const hboundab,
+    -- rw [dist_eq_norm, norm_eq_abs] at hab,
+    -- replace hab := mul_lt_mul_of_pos_left hab hCpos,
+    -- rw [←mul_div_assoc, mul_div_cancel_left ε (ne_of_lt hCpos).symm, abs_sub] at hab,
+    -- exact lt_of_le_of_lt hbound hab,
 end
-
-lemma P.to_fun.continuous : continuous P.to_fun := sorry -- This is not true.
 
 -- The Picard operator is bounded.
 lemma P.to_fun.bounded : ∃ C, ∀ (a b : ℝ), dist (P.to_fun a) (P.to_fun b) ≤ C := 
@@ -92,5 +98,12 @@ def P : (ℝ →ᵇ E) → (ℝ →ᵇ E) :=
 
 @[simp] lemma P.def (x : ℝ →ᵇ E) (t : ℝ) 
 : P x t = x₀ + ∫ s in t₀..t, v s (x s) ∂μ := rfl
+
+-- Initial value problem.
+parameters (x : locally_bounded_continuous_function)
+           (hx₀ : x t₀ = x₀) 
+           (hx_deriv : ∀ t ∈ Ioc t₀ t₁, has_deriv_within_at x (v t (x t)) (Ioi t) t)
+           (hv_integrable : interval_integrable (λ t, v t (x t)) volume t₀ t₁)
+           (hv_bdd : ∃ C, 0 < C ∧ ∀ t ∈ Ioc t₀ t₁, ∥v t (x t)∥ ≤ C)
 
 end picard_operator
