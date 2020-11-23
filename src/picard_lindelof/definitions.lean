@@ -12,75 +12,66 @@ section picard_operator
 parameter (μ : measure ℝ)
 
 -- NOTE: This is meant to be ℝ^n.
-parameters {B : Type*} [normed_group B] [normed_space ℝ B] [measurable_space B]
-                       [complete_space B] [second_countable_topology B] [borel_space B]
-                       [linear_order B] [metric_space B] -- Maybe
-          
+parameters {E : Type*} [normed_group E] [normed_space ℝ E] [measurable_space E]
+                       [complete_space E] [second_countable_topology E] [borel_space E]
+                       [linear_order E] [metric_space E] -- Maybe
 
-parameters (t0 : ℝ) (x0 : B) (f : ℝ → B → B)
+-- Initial value problem.
+parameters (t₀ t₁ : ℝ) (x₀ : E) (v : ℝ → E → E) (x : ℝ → E) 
+           (hx₀ : x t₀ = x₀) 
+           (hx_cts : continuous_on x (Icc t₀ t₁))
+           (hx_deriv : ∀ t ∈ Ico t₀ t₁, has_deriv_within_at x (v t (x t)) (Ioi t) t)
 
+-- Assume v is globally lipshitz and bounded.
 parameters (K : nnreal) (hK : K < 1)
-
-parameter (hf : ∀ s, lipschitz_with K (f s))
+           (hv_lipschitz : ∀ s, lipschitz_with K (v s))
+           (hv_bdd : ∃ C, ∀ t ∈ Ico t₀ t₁, ∥v t (x t)∥ ≤ C)
 
 local infixr ` →ᵇ `:25 := bounded_continuous_function
 
 open bounded_continuous_function
 
--- Picard operator as a function.
-def P_raw (x : ℝ →ᵇ B) : ℝ → B := λ t, x0 + ∫ s in t0..t, (f s (x s)) ∂μ
+-- The Picard operator as a function.
+def P.to_fun (x : ℝ →ᵇ E) : ℝ → E := λ t, x₀ + ∫ s in t₀..t, v s (x s) ∂μ
 
-include hf
-
-#check @continuous_iff
-
-set_option pp.private_names true
-
--- bounded_range_iff.1 $ bounded_of_compact $ compact_range hf
-#check bounded_range_iff
-#check @bounded_of_compact
-#check @compact_range
-#print bounded
-#check @compact_range
-#print interval_integral.norm_integral_le_of_norm_le_const
-#check lipschitz_with
-#print norm_add_le
-
-lemma f.bounded : ∀ (a : ℝ), ∀ (x : ℝ →ᵇ B), ∃ C, ∀ s ∈ Icc t0 a, ∥f s (x s)∥ ≤ C :=
-begin
-    -- let ε := 0,
-    -- intros a x, use ε, rintros s ⟨hslb, hsub⟩,
-    -- suffices hsuff : ∥((f s (x s)) - (f s (x a))) + (f s (x a))∥ ≤ ε,
-    -- { simp only [sub_add_cancel] at hsuff, exact hsuff, },
-    -- apply le_trans (norm_add_le _ (f s (x a))), rw ←dist_eq_norm, sorry,
-    -- I need something like continuous and on [a,b] then bounded.
-    intros a x, have := bounded_of_compact,
-end 
+-- lemma f.bounded : ∀ (a : ℝ), ∀ (x : ℝ →ᵇ B), ∃ C, ∀ s ∈ Icc , ∥f s (x s)∥ ≤ C :=
+-- begin
+--     -- let ε := 0,
+--     -- intros a x, use ε, rintros s ⟨hslb, hsub⟩,
+--     -- suffices hsuff : ∥((f s (x s)) - (f s (x a))) + (f s (x a))∥ ≤ ε,
+--     -- { simp only [sub_add_cancel] at hsuff, exact hsuff, },
+--     -- apply le_trans (norm_add_le _ (f s (x a))), rw ←dist_eq_norm, sorry,
+--     -- I need something like continuous and on [a,b] then bounded.
+--     intros a x, sorry,
+-- end 
 
 #print continuous_iff
 
-lemma P_raw.continuous 
-: ∀ (x : ℝ →ᵇ B), continuous (P_raw x) :=
+-- The Picard operator is continuous.
+lemma P.to_fun.continuous 
+: ∀ (x : ℝ →ᵇ E), continuous (P.to_fun x) :=
 begin 
-    have hf' := λ s, lipschitz_with.continuous (hf s),
+    have hf' := λ s, lipschitz_with.continuous (hf_lipschitz s),
     intros x, 
-    apply (@continuous_iff ℝ B _ _ (P_raw x)).2,
+    apply (@continuous_iff ℝ B _ _ (P.to_fun x)).2,
     intros a ε hε, 
     use [ε, hε],
     intros b hab,
     sorry,
 end 
 
-lemma P_raw.bounded 
-: ∀ (x : ℝ →ᵇ B), ∃ C, ∀ (a b : ℝ), dist (P_raw x a) (P_raw x b) ≤ C := 
+-- The Picard operator is bounded.
+lemma P.to_fun.bounded 
+: ∀ (x : ℝ →ᵇ E), ∃ C, ∀ (a b : ℝ), dist (P.to_fun x a) (P.to_fun x b) ≤ C := 
 begin
     intros x, sorry,
 end
 
-def P : (ℝ →ᵇ B) → (ℝ →ᵇ B) :=
-λ x, ⟨P_raw x, ⟨P_raw.continuous x, P_raw.bounded x⟩⟩ 
+-- Picard operator.
+def P : (ℝ →ᵇ E) → (ℝ →ᵇ E) :=
+λ x, ⟨P.to_fun x, ⟨P.to_fun.continuous x, P.to_fun.bounded x⟩⟩ 
 
-@[simp] lemma P_fn (x : ℝ →ᵇ B) (t : ℝ) 
-: P x t = x0 + ∫ s in t0..t, (f s (x s)) ∂μ := rfl
+@[simp] lemma P.def (x : ℝ →ᵇ E) (t : ℝ) 
+: P x t = x₀ + ∫ s in t₀..t, v s (x s) ∂μ := rfl
 
 end picard_operator
