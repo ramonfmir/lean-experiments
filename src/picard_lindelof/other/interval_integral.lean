@@ -2,7 +2,7 @@ import measure_theory.interval_integral
 import measure_theory.integration
 import topology.basic
 
-open measure_theory topological_space interval_integral
+open set measure_theory topological_space interval_integral
 
 -- TODO: Move.
 private lemma interval_integral.norm_integral_le_integral_norm_Ioc_of_le
@@ -26,3 +26,16 @@ private lemma interval_integral.integral_mono
 {f g : ℝ → B} (a b : ℝ)
 (hf : interval_integrable f μ a b) (hg : interval_integrable g μ a b) (h : f ≤ g)
 : ∫ t in a..b, f a ∂μ ≤ ∫ t in a..b, g t ∂μ := sorry
+
+variables {E : Type*}
+    [normed_group E] [normed_space ℝ E] [second_countable_topology E] 
+    [measurable_space E] [linear_order E] [complete_space E] [borel_space E]
+
+lemma interval_integral.norm_integral_le_of_norm_le_const' 
+    {a b C : ℝ} (hab : a ≤ b) {f : ℝ → E}
+    (h : ∀ x ∈ Ioc a b, ∥f x∥ ≤ C) :
+    ∥∫ x in a..b, f x∥ ≤ C * abs (b - a) :=
+begin
+    apply interval_integral.norm_integral_le_of_norm_le_const,
+    rw [min_eq_left hab, max_eq_right hab], exact h,
+end
