@@ -64,18 +64,18 @@ end
 
 --lemma P.edist_lt_top : Π (x : A →ᵇ B), edist x (P x) < ⊥ := sorry
 
-def P.efixed_point_of_lipschitz (hf : ∀ s, lipschitz_with K (f s)) : ℝ →ᵇ B := 
-contracting_with.efixed_point P ⟨hK, P.lipschitz_of_lipschitz hf⟩ sorry sorry
+-- def P.efixed_point_of_lipschitz (hf : ∀ s, lipschitz_with K (f s)) : ℝ →ᵇ B := 
+-- contracting_with.efixed_point P ⟨hK, P.lipschitz_of_lipschitz hf⟩ sorry sorry
 
 --#check contracting_with.efixed_point P
 
 /-- There exists only one solution of an ODE \(\dot x=v(t, x)\) with
 a given initial value provided that RHS is Lipschitz continuous in `x`. -/
-theorem ODE_solution_unique' {v : ℝ → B → B}
+theorem ODE_solution_unique' {v : ℝ → E → E}
   {K : nnreal} (hv : ∀ t, lipschitz_with K (v t))
-  {f g : ℝ → B} {a b : ℝ}
+  {f g : ℝ → E} {a b : ℝ}
   (hf : continuous_on f (Icc a b))
-  (hf' : ∀ t ∈ Ico a b, has_deriv_within_at f (v t (f t)) (Ioi t) t)
+  (hf' : ∀ t ∈ Ico a b, has_deriv_within_at f (v t (f t)) (Ioi t) t) -- integral_has_deriv_within_at_right
   (hg : continuous_on g (Icc a b))
   (hg' : ∀ t ∈ Ico a b, has_deriv_within_at g (v t (g t)) (Ioi t) t)
   (ha : f a = g a) :
