@@ -1,8 +1,6 @@
 import order.complete_lattice
 import data.real.ennreal
 
-section to_mathlib
-
 -- TODO: Is there a better way?
 class complete_ordered_add_comm_monoid (α : Type*) 
 extends complete_lattice α, add_comm_monoid α :=
@@ -28,5 +26,3 @@ lemma supr_add_le_add_supr
 {α : Type*} [complete_ordered_add_comm_monoid α] {ι : Type*} (s t : ι → α)
 : supr (s + t) ≤ (supr s) + (supr t) :=
 supr_le $ λ i, add_le_add (le_supr s i) (le_supr t i)
-
-end to_mathlib
