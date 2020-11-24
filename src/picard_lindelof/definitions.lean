@@ -3,7 +3,7 @@ import measure_theory.interval_integral
 
 -- import picard_lindelof.other.interval_integral
 
--- Following Imperial's MA2AA1 notes and Ch 2 of 'Spectral Theory and Quantum Mechanics'.
+-- Following Imperial's MA2AA1 notes.
 -- Another useful resource: Oxford DE1 notes.
 
 noncomputable theory
@@ -12,28 +12,33 @@ open_locale topological_space
 
 notation `C(` A `)` := bounded_continuous_function ℝ A
 
+-- P : C(A) -> C(A)
+
 namespace picard_operator
 
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
--- Our 'nice' initial value problem.
-structure initial_value_problem (x : C(E)) (v : ℝ → E → E) :=
-(K : nnreal) (hK : K < 1) (hlipschitz : ∀ s, lipschitz_with K (v s))
-(hbdd : ∃ C, 0 < C ∧ ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), ∥v t (x t)∥ ≤ C)
-(hintegrable : ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), interval_integrable (λ s, v s (x s)) volume 0 t)
+variable (v : ℝ → E → E)
 
-notation `IVP(` x `,` v `)` := initial_value_problem x v
+-- Our 'nice' initial value problem. Quite strong, doesn't depend on x.
+structure initial_value_problem (v : ℝ → E → E) :=
+(K : nnreal) (hK : K < 1) 
+(hlipschitz : ∀ s, lipschitz_with K (v s))
+(hbdd : ∀ y : C(E), ∃ C, 0 < C ∧ ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), ∥v t (y t)∥ ≤ C)
+(hintegrable : ∀ y : C(E), ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), interval_integrable (λ s, v s (y s)) volume 0 t)
+
+notation `IVP(` v `)` := initial_value_problem v
 
 open bounded_continuous_function
 
 -- The Picard operator as a function.
-def P.to_fun (x : C(E)) (v : ℝ → E → E) : ℝ → E := 
+def P.to_fun (v : ℝ → E → E) (x : C(E)) : ℝ → E := 
 λ t, (x 0) + ∫ s in 0..t, v s (x s)
 
 -- Characterisation of distance between applications of P.
-def P.to_fun.dist_eq (x : C(E)) (v : ℝ → E → E) (a b : ℝ)
-: dist (P.to_fun x v a) (P.to_fun x v b) = ∥∫ s in a..b, v s (x s)∥ :=
+def P.to_fun.dist_eq (v : ℝ → E → E) (x : C(E)) (a b : ℝ)
+: dist (P.to_fun v x a) (P.to_fun v x b) = ∥∫ s in a..b, v s (x s)∥ :=
 begin 
     rw dist_eq_norm, simp only [P.to_fun],
     have hrw1 : 
@@ -56,13 +61,13 @@ begin
 end
 
 -- The Picard operator is continuous on [0, 1].
-lemma P.to_fun.continuous_on (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v))
-: continuous_on (P.to_fun x v) (Icc 0 1) :=
+lemma P.to_fun.continuous_on (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) 
+: continuous_on (P.to_fun v x) (Icc 0 1) :=
 begin
-    rcases I.hbdd with ⟨C, ⟨hCpos, hC⟩⟩,
+    rcases (I.hbdd x) with ⟨C, ⟨hCpos, hC⟩⟩,
     rw metric.continuous_on_iff,
     intros a ha ε hε, use [ε/C, div_pos hε hCpos],
-    intros b hb hab, rw [P.to_fun.dist_eq x v],
+    intros b hb hab, rw [P.to_fun.dist_eq v x],
     have hboundab : ∀ s, s ∈ Ioc (min b a) (max b a) → ∥v s (x s)∥ ≤ C,
     { by_cases (a ≤ b),
       { rw [min_eq_right h, max_eq_left h], 
@@ -84,41 +89,33 @@ begin
 end
 
 -- The Picard operator is continuous.
-lemma P.to_fun.continuous (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v))
-: continuous (P.to_fun x v) := sorry -- This is false?
+lemma P.to_fun.continuous (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) 
+: continuous (P.to_fun v x) := sorry -- This is false?
 
 -- The Picard operator is bounded.
-lemma P.to_fun.bounded (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v))
-: ∃ C, ∀ (a b : ℝ), dist (P.to_fun x v a) (P.to_fun x v b) ≤ C := sorry
+lemma P.to_fun.bounded (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) 
+: ∃ C, ∀ (a b : ℝ), dist (P.to_fun v x a) (P.to_fun v x b) ≤ C := sorry
 -- IDEA: If we assume function.suport x ⊆ [0, 1], a lot of this might work. 
 
 -- Picard operator.
-def P (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v)) : C(E) :=
-⟨P.to_fun x v, ⟨P.to_fun.continuous x v I, P.to_fun.bounded x v I⟩⟩
+def P (v : ℝ → E → E) (I : IVP(v)) : C(E) → C(E) :=
+λ x, ⟨P.to_fun v x, ⟨P.to_fun.continuous v I x, P.to_fun.bounded v I x⟩⟩
 
 -- Simplification lemma
-@[simp] lemma P.def (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v)) (t : ℝ)
-: P x v I t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
+@[simp] lemma P.def (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) (t : ℝ)
+: P v I x t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
 
 end picard_operator
 
 namespace picard_operator_recursive
 
--- ISSUE: If we need IVP to define P as a map C(E) → C(E), then the recursive definition
--- doesn't work. At least, straight away.
-
 open nat picard_operator
 
--- variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
---                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
+variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
+                      [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-def P.recursive (v : ℝ → ℝ → ℝ) (x : ℝ → ℝ) : ℕ → (ℝ → ℝ)
-| 0     := λ t, x 0
-| (n+1) := λ t, (x 0) + ∫ s in 0..t, v s (P.recursive n s)
-
--- WHAT?
--- equation compiler failed to generate bytecode for 'P.recursive._main'
--- nested exception message:
--- code generation failed, VM does not have code for 'ennreal.canonically_ordered_comm_semiring
+noncomputable def P.recursive (v : ℝ → E → E) (x₀ : E) : ℕ → (ℝ → E)
+| 0     := λ t, x₀
+| (n+1) := λ t, x₀ + (∫ s in (0 : ℝ)..(t : ℝ), v s (P.recursive n s))
 
 end picard_operator_recursive
