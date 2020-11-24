@@ -14,46 +14,42 @@ section picard_lindelof
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-
-lemma P.lipschitz_at_of_lipshitz (x y : C(E)) (Ix : IVP(x)) (Iy : IVP(y))
-: edist (P x Ix) (P y Iy) ≤ ↑(I.K) * edist x.to_fun y.to_fun :=
+lemma P.lipschitz_at (x y : C(E)) (v : ℝ → E → E) 
+(Ix : IVP(x, v)) (Iy : IVP(y, v)) (h0 : x 0 = y 0) (t : ℝ) (ht : t ∈ Ioc (0 : ℝ) (1 : ℝ))
+: edist (P x v Ix t) (P y v Iy t) ≤ ↑(Ix.K) * edist x y :=
 begin 
     simp, unfold edist, unfold metric_space.edist,
-    rw metric_space.edist_dist, cases K with K hK,
-    rw ←ennreal.of_real_eq_coe_nnreal,
-    rw ←ennreal.of_real_mul hK,
-    apply ennreal.of_real_le_of_real,
-    rw dist_eq_norm, 
-    calc ∥x0 + ∫ s in t0..t, f s (x s) ∂μ - (x0 + ∫ s in t0..t, f s (y s) ∂μ)∥ 
-        = ∥∫ s in t0..t, f s (x s) ∂μ - ∫ s in t0..t, f s (y s) ∂μ∥
-        : by rw [sub_eq_add_neg, neg_add, add_comm x0, add_assoc, ←add_assoc x0, 
-                 add_comm x0, neg_add_self, zero_add, ←sub_eq_add_neg]
-    ... = ∥∫ s in t0..t, (f s (x s)) - (f s (y s)) ∂μ∥ 
-        : by rw interval_integral.integral_sub hx hy
-    ... ≤ ∫ s in t0..t, ∥(f s (x s)) - (f s (y s))∥ ∂μ
-        : norm_integral_le_integral_norm_Ioc_of_le ht
-    ... = ∫ s in t0..t, (dist (f s (x s)) (f s (y s))) ∂μ
-        : by congr; ext; exact (dist_eq_norm _ _).symm
-    ... ≤ ∫ s in t0..t, K * dist (x s) (y s) ∂μ
-        : begin 
-            have hxsys := λ s, hf s (x s) (y s),
-            -- TODO: Factor this out. Argument about edist dist and le.
-            have hrw : (λ s, dist (f s (x s)) (f s (y s))) ≤ (λ s, K * dist (x s) (y s)) := sorry,
-            -- This follows from interval_integral.integral_mono.
-            have h := interval_integral.integral_mono μ t0 t hx hy,
-            -- TODO: We also need that dist is integrable... Arguments above
-            -- should not be hx and hy..
-            sorry,
-         end
-         -- Then we use norm_integral_le_of_norm_le_const
-         -- Bound it above by the supremum!
-         -- Well have something like K * (t - t0) * s ≤ K * s 
-         -- So we play with the t-t0 and K's and we should be good.
+    rw metric_space.edist_dist, cases Ix.K with K hK,
+    rw [←ennreal.of_real_eq_coe_nnreal, ←ennreal.of_real_mul hK],
+    apply ennreal.of_real_le_of_real, rw dist_eq_norm, rw ←h0,
+    calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
+        = ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
+        : congr_arg norm $ by abel
+    ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
+        : by rw interval_integral.integral_sub (Ix.hintegrable t ht) (Iy.hintegrable t ht)
+    -- ... ≤ ∫ s in t0..t, ∥(f s (x s)) - (f s (y s))∥ ∂μ
+    --     : norm_integral_le_integral_norm_Ioc_of_le ht
+    -- ... = ∫ s in t0..t, (dist (f s (x s)) (f s (y s))) ∂μ
+    --     : by congr; ext; exact (dist_eq_norm _ _).symm
+    -- ... ≤ ∫ s in t0..t, K * dist (x s) (y s) ∂μ
+    --     : begin 
+    --         have hxsys := λ s, hf s (x s) (y s),
+    --         -- TODO: Factor this out. Argument about edist dist and le.
+    --         have hrw : (λ s, dist (f s (x s)) (f s (y s))) ≤ (λ s, K * dist (x s) (y s)) := sorry,
+    --         -- This follows from interval_integral.integral_mono.
+    --         have h := interval_integral.integral_mono μ t0 t hx hy,
+    --         -- TODO: We also need that dist is integrable... Arguments above
+    --         -- should not be hx and hy..
+    --         sorry,
+    --      end
+    --      -- Then we use norm_integral_le_of_norm_le_const
+    --      -- Bound it above by the supremum!
+    --      -- Well have something like K * (t - t0) * s ≤ K * s 
+    --      -- So we play with the t-t0 and K's and we should be good.
     ... ≤ K * Inf {C | 0 ≤ C ∧ ∀ t, dist (x t) (y t) ≤ C} : sorry
 end
 
-lemma P.lipschitz_of_lipschitz (hf : ∀ s, lipschitz_with K (f s))
-: lipschitz_with K P :=
+lemma P.lipschitz (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v)) : lipschitz_with I.K (P x v I) :=
 begin 
     intros x y,
     let S := {C | 0 ≤ C ∧ ∀ (a : ℝ), edist (P x a) (P y a) ≤ C},

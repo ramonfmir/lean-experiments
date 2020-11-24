@@ -21,7 +21,7 @@ variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [lin
 structure initial_value_problem (x : C(E)) (v : ℝ → E → E) :=
 (K : nnreal) (hK : K < 1) (hlipschitz : ∀ s, lipschitz_with K (v s))
 (hbdd : ∃ C, 0 < C ∧ ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), ∥v t (x t)∥ ≤ C)
-(hintegrable : interval_integrable (λ s, v s (x s)) volume 0 1)
+(hintegrable : ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), interval_integrable (λ s, v s (x s)) volume 0 t)
 
 notation `IVP(` x `,` v `)` := initial_value_problem x v
 
@@ -109,10 +109,10 @@ namespace picard_operator_recursive
 
 open nat picard_operator
 
-variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
-                      [normed_space ℝ E] [complete_space E] [second_countable_topology E]
+-- variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
+--                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-def P.recursive (x : ℝ → E) (v : ℝ → E → E) : ℕ → (ℝ → E)
+def P.recursive (v : ℝ → ℝ → ℝ) (x : ℝ → ℝ) : ℕ → (ℝ → ℝ)
 | 0     := λ t, x 0
 | (n+1) := λ t, (x 0) + ∫ s in 0..t, v s (P.recursive n s)
 
