@@ -12,8 +12,6 @@ open_locale topological_space
 
 notation `C(` A `)` := bounded_continuous_function ℝ A
 
--- P : C(A) -> C(A)
-
 namespace picard_operator
 
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
@@ -25,7 +23,9 @@ variable (v : ℝ → E → E)
 structure initial_value_problem (v : ℝ → E → E) :=
 (K : nnreal) (hK : K < 1) 
 (hlipschitz : ∀ s, lipschitz_with K (v s))
+-- A Lipschitz function is bounded on a bounded domain.
 (hbdd : ∀ y : C(E), ∃ C, 0 < C ∧ ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), ∥v t (y t)∥ ≤ C)
+-- Will follow from being a derivative of?
 (hintegrable : ∀ y : C(E), ∀ t ∈ Ioc (0 : ℝ) (1 : ℝ), interval_integrable (λ s, v s (y s)) volume 0 t)
 
 notation `IVP(` v `)` := initial_value_problem v

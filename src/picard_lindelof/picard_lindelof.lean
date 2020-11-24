@@ -14,19 +14,19 @@ section picard_lindelof
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-lemma P.lipschitz_at (x y : C(E)) (v : ℝ → E → E) 
-(Ix : IVP(x, v)) (Iy : IVP(y, v)) (h0 : x 0 = y 0) (t : ℝ) (ht : t ∈ Ioc (0 : ℝ) (1 : ℝ))
-: edist (P x v Ix t) (P y v Iy t) ≤ ↑(Ix.K) * edist x y :=
+lemma P.lipschitz_at (v : ℝ → E → E) (I : IVP(v)) (x y : C(E))
+(h0 : x 0 = y 0) (t : ℝ) (ht : t ∈ Ioc (0 : ℝ) (1 : ℝ))
+: edist (P v I x t) (P v I y t) ≤ ↑(I.K) * edist x y :=
 begin 
     simp, unfold edist, unfold metric_space.edist,
-    rw metric_space.edist_dist, cases Ix.K with K hK,
+    rw metric_space.edist_dist, cases I.K with K hK,
     rw [←ennreal.of_real_eq_coe_nnreal, ←ennreal.of_real_mul hK],
     apply ennreal.of_real_le_of_real, rw dist_eq_norm, rw ←h0,
     calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
         = ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
         : congr_arg norm $ by abel
     ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
-        : by rw interval_integral.integral_sub (Ix.hintegrable t ht) (Iy.hintegrable t ht)
+        : by rw interval_integral.integral_sub (I.hintegrable x t ht) (I.hintegrable y t ht)
     -- ... ≤ ∫ s in t0..t, ∥(f s (x s)) - (f s (y s))∥ ∂μ
     --     : norm_integral_le_integral_norm_Ioc_of_le ht
     -- ... = ∫ s in t0..t, (dist (f s (x s)) (f s (y s))) ∂μ
@@ -49,13 +49,14 @@ begin
     ... ≤ K * Inf {C | 0 ≤ C ∧ ∀ t, dist (x t) (y t) ≤ C} : sorry
 end
 
-lemma P.lipschitz (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v)) : lipschitz_with I.K (P x v I) :=
+lemma P.lipschitz (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) : lipschitz_with I.K (P v I) :=
 begin 
     intros x y,
-    let S := {C | 0 ≤ C ∧ ∀ (a : ℝ), edist (P x a) (P y a) ≤ C},
-    calc edist (P x) (P y) 
-        = Inf S : P.edist_eq_Inf x y sorry -- NOTE: Is this even useful?
-    ... ≤ ↑K * edist x y : sorry --supr_le (λ t, P.lipschitz_at_of_lipshitz hf t x y),
+    let S := {C | 0 ≤ C ∧ ∀ (a : ℝ), edist (P v I x a) (P v I y a) ≤ C},
+    calc edist (P v I x) (P v I y) 
+        --= Inf S : P.edist_eq_Inf v I x y sorry sorry sorry 
+        -- NOTE: Is this even useful?
+        ≤ ↑(I.K) * edist x y : sorry --supr_le (λ t, P.lipschitz_at_of_lipshitz hf t x y),
 end 
 
 --lemma P.edist_lt_top : Π (x : A →ᵇ B), edist x (P x) < ⊥ := sorry
