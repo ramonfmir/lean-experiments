@@ -1,17 +1,18 @@
 import topology.bounded_continuous_function
 import measure_theory.interval_integral
 
-import picard_lindelof.other.interval_integral
+-- import picard_lindelof.other.interval_integral
 
 -- Following Imperial's MA2AA1 notes and Ch 2 of 'Spectral Theory and Quantum Mechanics'.
+-- Another useful resource: Oxford DE1 notes.
 
 noncomputable theory
-open metric real set measure_theory interval_integral topological_space
+open nat metric real set measure_theory interval_integral topological_space
 open_locale topological_space  
 
-namespace picard_operator
-
 notation `C(` A `)` := bounded_continuous_function ℝ A
+
+namespace picard_operator
 
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
@@ -54,7 +55,7 @@ begin
     rw [hadd, norm_neg],
 end
 
--- The Picard operator is continuous.
+-- The Picard operator is continuous on [0, 1].
 lemma P.to_fun.continuous_on (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v))
 : continuous_on (P.to_fun x v) (Icc 0 1) :=
 begin
@@ -82,25 +83,42 @@ begin
     exact lt_of_le_of_lt hbound hab,
 end
 
+-- The Picard operator is continuous.
+lemma P.to_fun.continuous (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v))
+: continuous (P.to_fun x v) := sorry -- This is false?
+
 -- The Picard operator is bounded.
 lemma P.to_fun.bounded (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v))
-: ∃ C, ∀ (a b : ℝ), dist (P.to_fun x v a) (P.to_fun x v b) ≤ C := 
-begin
-    sorry,
-end
+: ∃ C, ∀ (a b : ℝ), dist (P.to_fun x v a) (P.to_fun x v b) ≤ C := sorry
+-- IDEA: If we assume function.suport x ⊆ [0, 1], a lot of this might work. 
 
 -- Picard operator.
-def P (x₀ : E) (x : C(E)) (v : ℝ → E → E) (I : IVP(x₀, x, v)) : C(E) := {
-    to_fun := P.to_fun x I, P.to_fun.continuous_on x I,
-}
+def P (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v)) : C(E) :=
+⟨P.to_fun x v, ⟨P.to_fun.continuous x v I, P.to_fun.bounded x v I⟩⟩
 
-@[simp] lemma P.def (x : C(E)) (I : IVP(x)) (t : ℝ)
-: P x I t = I.x₀ + ∫ s in x.t₀..t, I.v s (x s) := rfl
-
-def first_approx (x : C(E)) (I : IVP(x)) : C(E) := sorry
-
-def P.recursive (x : C(E)) (I : IVP(x)) : ℕ → C(E)
-| 0     := first_approx x I
-| (n+1) := P (P.recursive x I n)
+-- Simplification lemma
+@[simp] lemma P.def (x : C(E)) (v : ℝ → E → E) (I : IVP(x, v)) (t : ℝ)
+: P x v I t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
 
 end picard_operator
+
+namespace picard_operator_recursive
+
+-- ISSUE: If we need IVP to define P as a map C(E) → C(E), then the recursive definition
+-- doesn't work. At least, straight away.
+
+open nat picard_operator
+
+variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
+                      [normed_space ℝ E] [complete_space E] [second_countable_topology E]
+
+def P.recursive (x : ℝ → E) (v : ℝ → E → E) : ℕ → (ℝ → E)
+| 0     := λ t, x 0
+| (n+1) := λ t, (x 0) + ∫ s in 0..t, v s (P.recursive n s)
+
+-- WHAT?
+-- equation compiler failed to generate bytecode for 'P.recursive._main'
+-- nested exception message:
+-- code generation failed, VM does not have code for 'ennreal.canonically_ordered_comm_semiring
+
+end picard_operator_recursive
