@@ -102,7 +102,7 @@ temp.norm_integral_le_of_norm_le_const_ae μ (filter.eventually_of_forall h)
 
 -- The Picard operator is continuous!
 lemma P.to_fun.continuous (μ : measure α) (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
-: continuous (P.to_fun μ v x)  :=
+: continuous (P.to_fun μ v x) :=
 begin
     rcases (I.hbdd x) with ⟨C, ⟨hCpos, hC⟩⟩,
     rw metric.continuous_iff,
@@ -123,7 +123,23 @@ end
 
 -- The Picard operator is bounded.
 lemma P.to_fun.bounded (μ : measure α) (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
-: ∃ C, ∀ a b, dist (P.to_fun μ v x a) (P.to_fun μ v x b) ≤ C := sorry
+: ∃ C, ∀ a b, dist (P.to_fun μ v x a) (P.to_fun μ v x b) ≤ C := 
+begin 
+  rcases (I.hbdd x) with ⟨C, ⟨hCpos, hC⟩⟩, use [C * 2],
+  intros a b, rw [P.to_fun.dist_eq μ v x],
+  -- Note that this is the same as for continuity. Generalise.
+  have hboundab : ∀ s, s ∈ Ioc (min a b) (max a b) → ∥v s (x s)∥ ≤ C,
+  { by_cases (b ≤ a),
+    { rw [min_eq_right h, max_eq_left h], 
+      intros s hs, apply (hC s), },
+    { rw [min_eq_left (le_of_not_le h), max_eq_right (le_of_not_le h)], 
+      intros s hs, apply (hC s), }, },
+  have hbound := temp.norm_integral_le_of_norm_le_const μ hboundab,
+  suffices hsuff : abs (b.val - a.val) ≤ 2,
+  { have hC2 := (mul_le_mul_left hCpos).2 hsuff, 
+    exact (le_trans hbound hC2), },
+  sorry -- But very obviously follows from a.property and b.property!
+end
 
 -- Picard operator.
 def P (μ : measure α) (v : α → E → E) (I : IVP(v)) : (α →ᵇ E) → (α →ᵇ E) :=
