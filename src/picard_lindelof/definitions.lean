@@ -48,6 +48,7 @@ instance : order_closed_topology α := {
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
+
 -- Our 'nice' initial value problem. Quite strong, doesn't depend on x.
 structure initial_value_problem (v : α → E → E) :=
 (K : nnreal) (hK : K < 1) 
@@ -56,6 +57,20 @@ structure initial_value_problem (v : α → E → E) :=
 (hbdd : ∀ y : α →ᵇ E, ∃ C, 0 < C ∧ ∀ t, ∥v t (y t)∥ ≤ C)
 -- Will follow from being a derivative of?
 --(hintegrable : ∀ y : α →ᵇ E, ∀ t, interval_integrable (λ s, v s (y s)) volume 0 t)
+
+-- TODO: Move.
+private lemma bdd_of_lipschitz_on_bdd_dom (v : α → E → E)
+{K : nnreal} (hK : K < 1) (h : ∀ s, lipschitz_with K (v s))
+: ∀ y : α →ᵇ E, ∃ C, 0 ≤ C ∧ ∀ t, ∥v t (y t)∥ ≤ C :=
+begin 
+  intros y, 
+  -- have hm := λ s, le_supr (λ t, ∥v t (y t)∥) s, dsimp at hm,
+  -- let m := ⨆ t, ∥v t (y t)∥,
+  -- have hmnonneg : 0 ≤ m := le_trans 
+  -- have h2Knonneg : 0 ≤ 2 * K.1 := mul_nonneg (by linarith) K.2,
+  -- use [2 * K, h2Knonneg],
+  sorry,
+end
 
 notation `IVP(` v `)` := initial_value_problem v
 
