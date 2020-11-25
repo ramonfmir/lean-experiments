@@ -45,6 +45,18 @@ instance : order_closed_topology α := {
   end
 }
 
+-- TODO: Move
+lemma bdd_below_Icc {a b : ℝ} : bdd_below (Icc a b) := ⟨a, λ _, and.left⟩
+
+-- TODO: Better compact_space α.
+lemma compact : is_compact (⊤ : set α) :=
+begin
+  erw compact_iff_compact_in_subtype, simp,
+  rw compact_iff_closed_bounded, split,
+  { exact is_closed_Icc, },
+  { exact (bounded_iff_bdd_below_bdd_above.2 ⟨bdd_below_Icc, bdd_above_Icc⟩), },
+end
+
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
@@ -64,8 +76,10 @@ private lemma bdd_of_lipschitz_on_bdd_dom (v : α → E → E)
 : ∀ y : α →ᵇ E, ∃ C, 0 ≤ C ∧ ∀ t, ∥v t (y t)∥ ≤ C :=
 begin 
   intros y, 
-  -- have hm := λ s, le_supr (λ t, ∥v t (y t)∥) s, dsimp at hm,
-  -- let m := ⨆ t, ∥v t (y t)∥,
+  unfold lipschitz_with at h,
+  -- is_compact.exists_forall_ge
+  -- have hm := λ s, le_supr (λ t, v t (y t)) s, dsimp at hm,
+  let m : ℝ := ∥v 0 (y 0)∥,
   -- have hmnonneg : 0 ≤ m := le_trans 
   -- have h2Knonneg : 0 ≤ 2 * K.1 := mul_nonneg (by linarith) K.2,
   -- use [2 * K, h2Knonneg],
