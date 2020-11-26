@@ -1,6 +1,6 @@
 import picard_lindelof.definitions
 
--- Following Imperial's MA2AA1 notes and Ch 2 of 'Spectral Theory and Quantum Mechanics'.
+-- Following Imperial's MA2AA1 notes.
 
 noncomputable theory
 open metric set asymptotics filter real measure_theory 
@@ -10,23 +10,25 @@ open_locale topological_space classical filter uniformity
 
 section picard_lindelof
 
+local infix ` →ᵇ `:25 := bounded_continuous_function 
+
 -- NOTE: This is meant to be ℝ^n.
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-lemma P.lipschitz_at (v : ℝ → E → E) (I : IVP(v)) (x y : C(E))
-(h0 : x 0 = y 0) (t : ℝ) (ht : t ∈ Ioc (0 : ℝ) (1 : ℝ))
-: edist (P v I x t) (P v I y t) ≤ ↑(I.K) * edist x y :=
+lemma P.lipschitz_at (μ : measure α) (v : α → E → E) (I : IVP(μ, v)) (x y : α →ᵇ E)
+(h0 : x 0 = y 0) (t : α)
+: edist (P μ v I x t) (P μ v I y t) ≤ ↑(I.K) * edist x y :=
 begin 
     simp, unfold edist, unfold metric_space.edist,
     rw metric_space.edist_dist, cases I.K with K hK,
     rw [←ennreal.of_real_eq_coe_nnreal, ←ennreal.of_real_mul hK],
     apply ennreal.of_real_le_of_real, rw dist_eq_norm, rw ←h0,
-    calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
-        = ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
+    calc ∥((x 0) + ∫ s in 0..t, v s (x s) ∂μ) - ((x 0) + ∫ s in 0..t, v s (y s) ∂μ)∥ 
+        = ∥(∫ s in 0..t, v s (x s) ∂μ) - (∫ s in 0..t, v s (y s) ∂μ)∥
         : congr_arg norm $ by abel
-    ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
-        : by rw interval_integral.integral_sub (I.hintegrable x t ht) (I.hintegrable y t ht)
+    ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s)) ∂μ∥ 
+        : by rw interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)
     -- ... ≤ ∫ s in t0..t, ∥(f s (x s)) - (f s (y s))∥ ∂μ
     --     : norm_integral_le_integral_norm_Ioc_of_le ht
     -- ... = ∫ s in t0..t, (dist (f s (x s)) (f s (y s))) ∂μ

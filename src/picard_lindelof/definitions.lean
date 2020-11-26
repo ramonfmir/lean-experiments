@@ -200,6 +200,29 @@ def P (μ : measure α) (v : α → E → E) (I : IVP(μ, v)) : (α →ᵇ E) �
 @[simp] lemma P.def (μ : measure α) (v : α → E → E) (I : IVP(μ, v)) (x : α →ᵇ E) (t : α)
 : P μ v I x t = (x 0) + ∫ s in 0..t, v s (x s) ∂μ := rfl
 
+-- TODO: Move. Needs more assumptions.
+private lemma mul_Inf {K : ℝ} {p : ℝ → Prop} : K * Inf {x | p x} = Inf {y | ∃ x, y = K * x ∧ p x} :=
+begin 
+  let S := {y : ℝ | ∃ (x : ℝ), y = K * x ∧ p x},
+  apply le_antisymm,
+  { have h1 : (∃ (x : ℝ), x ∈ S) := sorry,
+    have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y) := sorry,
+    rw real.le_Inf S h1 h2, sorry, }
+  { sorry, },
+end
+
+lemma P.lipschitz (μ : measure α) (v : α → E → E) (I : IVP(μ, v)) 
+: lipschitz_with I.K (P μ v I) :=
+begin 
+  intros x y, cases I.K with K hKnonneg,
+  unfold edist, rw metric_space.edist_dist, unfold dist,
+  rw metric_space.edist_dist, unfold dist, 
+  rw ←ennreal.of_real_eq_coe_nnreal hKnonneg,
+  rw ←ennreal.of_real_mul hKnonneg,
+  apply ennreal.of_real_le_of_real,
+  sorry,
+end
+
 end picard_operator
 
 namespace picard_operator_recursive
