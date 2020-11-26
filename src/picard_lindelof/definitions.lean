@@ -74,16 +74,32 @@ end
 instance : has_lift_t α ℝ := ⟨λ t, t.1⟩
 
 -- Canonical measure. Hopefully not really needed.
-def α.volume : measure α := begin 
-  let v : measure ℝ := volume,
-  let m : set α → ennreal := λ s, v.to_outer_measure.measure_of (coe '' s),
-  apply measure.of_measurable (λ s _, m s),
-  { dsimp [m], simp, },
-  { dsimp [m], intros f hm hpw, 
-    have h := v.m_Union, 
-    -- Doable playing around with coe and so on.
-    sorry, },
-end
+-- NOTE: This proof went through at some point...
+-- noncomputable instance α.volume : measure α := begin 
+--   let v : measure ℝ := volume,
+--   let m : set α → ennreal := λ s, v.to_outer_measure.measure_of (coe '' s),
+--   apply measure.of_measurable (λ s _, m s),
+--   { dsimp [m], simp, },
+--   { dsimp [m], intros f hm hpw, 
+--     have h := v.m_Union, 
+--     let fα : ℕ → set ℝ := λ n, coe '' (f n),
+--     have hfαi : ∀ i, is_measurable (fα i),
+--     { intros i, apply is_measurable.subtype_image,
+--       { exact is_measurable_Icc, },
+--       { exact hm i, }, },
+--     have hfαpw : pairwise (disjoint on fα),
+--     { intros i j hij x hx, dsimp [fα] at hx,
+--       cases hx with hxi hxj, simp at hxi hxj,
+--       rcases hxi with ⟨xα, ⟨hxi, hxα⟩⟩,
+--       rcases hxj with ⟨xα', ⟨hxj, hxα'⟩⟩,
+--       have heq : xα = xα',
+--       { rw ←hxα' at hxα, exact subtype.eq hxα, },
+--       rw ←heq at hxj, exact (hpw i j hij ⟨hxi, hxj⟩), },
+--     replace h := h hfαi hfαpw, dsimp [fα, v] at h ⊢,
+--     erw ←h, simp [volume], 
+--     show (lebesgue_outer _ = lebesgue_outer _),
+--     congr, rw image_Union,
+-- end
 
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
@@ -201,13 +217,14 @@ def P (μ : measure α) (v : α → E → E) (I : IVP(μ, v)) : (α →ᵇ E) �
 : P μ v I x t = (x 0) + ∫ s in 0..t, v s (x s) ∂μ := rfl
 
 -- TODO: Move. Needs more assumptions.
-private lemma mul_Inf {K : ℝ} {p : ℝ → Prop} : K * Inf {x | p x} = Inf {y | ∃ x, y = K * x ∧ p x} :=
+private lemma mul_Inf {K : ℝ} {p : ℝ → Prop} 
+: K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, y = K * x ∧ 0 ≤ x ∧ p x} :=
 begin 
-  let S := {y : ℝ | ∃ (x : ℝ), y = K * x ∧ p x},
+  let S := {y : ℝ | ∃ (x : ℝ), y = K * x ∧ 0 ≤ x ∧ p x},
   apply le_antisymm,
   { have h1 : (∃ (x : ℝ), x ∈ S) := sorry,
     have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y) := sorry,
-    rw real.le_Inf S h1 h2, sorry, }
+    rw real.le_Inf S h1 h2, sorry, },
   { sorry, },
 end
 
