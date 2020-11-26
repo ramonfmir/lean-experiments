@@ -64,6 +64,27 @@ instance : compact_space α := begin
   exact compact_iff_compact_space.1 hcompact,
 end
 
+lemma dist_le_2 (a b : α) : dist a b ≤ 2 := begin
+  obtain ⟨halb, haub⟩ := a.2, obtain ⟨hblb, hbub⟩ := b.2,
+  erw [dist_eq_norm, norm_eq_abs], by_cases h : 0 ≤ a.val - b.val,
+  { erw abs_of_nonneg h, linarith, },
+  { erw abs_of_neg (lt_of_not_ge h), linarith, } 
+end
+
+instance : has_lift_t α ℝ := ⟨λ t, t.1⟩
+
+-- Canonical measure. Hopefully not really needed.
+def α.volume : measure α := begin 
+  let v : measure ℝ := volume,
+  let m : set α → ennreal := λ s, v.to_outer_measure.measure_of (coe '' s),
+  apply measure.of_measurable (λ s _, m s),
+  { dsimp [m], simp, },
+  { dsimp [m], intros f hm hpw, 
+    have h := v.m_Union, 
+    -- Doable playing around with coe and so on.
+    sorry, },
+end
+
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
@@ -108,11 +129,21 @@ begin
     rw [hadd, norm_neg],
 end
 
---TODO: Probably need something like this, and probably going to be a pain.
+--TODO: Move. This is not mathlib material though.
 private lemma temp.norm_integral_le_of_norm_le_const_ae (μ : measure α) {a b : α} {C : ℝ} {f : α → E}
   (h : filter.eventually (λ x, x ∈ Ioc (min a b) (max a b) → ∥f x∥ ≤ C) μ.ae) :
   ∥∫ x in a..b, f x ∂μ∥ ≤ C * abs (b.val - a.val) :=
-sorry
+begin 
+  rw [norm_integral_eq_norm_integral_Ioc],
+  -- We can assume that our measure has this property. Or, preferably, define
+  -- the canonical measure on α in terms of the canonical measure on ℝ.
+  have hrw : ∀ {a b : α}, μ (Ioc a b) = ennreal.of_real (b.1 - a.1) := sorry,
+  convert norm_set_integral_le_of_norm_le_const_ae'' _ is_measurable_Ioc h,
+  { have hmax : (max a b).val = max a.val b.val := by unfold max; split_ifs; refl,
+    have hmin : (min a b).val = min a.val b.val := by unfold min; split_ifs; refl,
+    rw [hrw, hmax, hmin, max_sub_min_eq_abs, ennreal.to_real_of_real (abs_nonneg _)], },
+  { simp only [hrw, ennreal.of_real_lt_top], }
+end
 
 private lemma temp.norm_integral_le_of_norm_le_const (μ : measure α) {a b : α} {C : ℝ} {f : α → E}
   (h : ∀ x ∈ Ioc (min a b) (max a b), ∥f x∥ ≤ C) :
@@ -157,7 +188,8 @@ begin
   suffices hsuff : abs (b.val - a.val) ≤ 2,
   { have hC2 := (mul_le_mul_left hCpos).2 hsuff, 
     exact (le_trans hbound hC2), },
-  sorry -- But very obviously follows from a.property and b.property!
+  rw [←norm_eq_abs, ←dist_eq_norm],
+  exact dist_le_2 b a,
 end
 
 -- Picard operator.
