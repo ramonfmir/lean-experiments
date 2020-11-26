@@ -16,18 +16,18 @@ local infix ` →ᵇ `:25 := bounded_continuous_function
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-lemma P.lipschitz_at (μ : measure α) (v : α → E → E) (I : IVP(μ, v)) (x y : α →ᵇ E)
+lemma P.lipschitz_at (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
 (h0 : x 0 = y 0) (t : α)
-: edist (P μ v I x t) (P μ v I y t) ≤ ↑(I.K) * edist x y :=
+: edist (P v I x t) (P v I y t) ≤ ↑(I.K) * edist x y :=
 begin 
     simp, unfold edist, unfold metric_space.edist,
     rw metric_space.edist_dist, cases I.K with K hK,
     rw [←ennreal.of_real_eq_coe_nnreal, ←ennreal.of_real_mul hK],
     apply ennreal.of_real_le_of_real, rw dist_eq_norm, rw ←h0,
-    calc ∥((x 0) + ∫ s in 0..t, v s (x s) ∂μ) - ((x 0) + ∫ s in 0..t, v s (y s) ∂μ)∥ 
-        = ∥(∫ s in 0..t, v s (x s) ∂μ) - (∫ s in 0..t, v s (y s) ∂μ)∥
+    calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
+        = ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
         : congr_arg norm $ by abel
-    ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s)) ∂μ∥ 
+    ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
         : by rw interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)
     -- ... ≤ ∫ s in t0..t, ∥(f s (x s)) - (f s (y s))∥ ∂μ
     --     : norm_integral_le_integral_norm_Ioc_of_le ht
