@@ -58,6 +58,26 @@ begin
     rw [hadd, norm_neg],
 end
 
+--TODO: Move. This is probably not mathlib material though.
+private lemma temp.norm_integral_le_of_norm_le_const_ae {a b : α} {C : ℝ} {f : α → E}
+  (h : filter.eventually (λ x, x ∈ Ioc (min a b) (max a b) → ∥f x∥ ≤ C) volume.ae) :
+  ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
+begin 
+  rw [norm_integral_eq_norm_integral_Ioc],
+  -- We should be able to prove it from the definition.
+  have hrw : ∀ {a b : α}, volume (Ioc a b) = ennreal.of_real (b.1 - a.1) := sorry,
+  convert norm_set_integral_le_of_norm_le_const_ae'' _ is_measurable_Ioc h,
+  { have hmax : (max a b).val = max a.val b.val := by unfold max; split_ifs; refl,
+    have hmin : (min a b).val = min a.val b.val := by unfold min; split_ifs; refl,
+    rw [hrw, hmax, hmin, max_sub_min_eq_abs, ennreal.to_real_of_real (abs_nonneg _)], },
+  { simp only [hrw, ennreal.of_real_lt_top], }
+end
+
+private lemma temp.norm_integral_le_of_norm_le_const {a b : α} {C : ℝ} {f : α → E}
+  (h : ∀ x ∈ Ioc (min a b) (max a b), ∥f x∥ ≤ C) :
+  ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
+temp.norm_integral_le_of_norm_le_const_ae (filter.eventually_of_forall h)
+
 -- The Picard operator is continuous!
 lemma P.to_fun.continuous (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
 : continuous (P.to_fun v x) :=
@@ -65,14 +85,14 @@ begin
     rcases (I.hbdd x) with ⟨C, ⟨hCpos, hC⟩⟩,
     rw metric.continuous_iff,
     intros a ε hε, use [ε/C, div_pos hε hCpos],
-    intros b hab, rw [P.to_fun.dist_eq μ v I x],
+    intros b hab, rw [P.to_fun.dist_eq v I x],
     have hboundab : ∀ s, s ∈ Ioc (min b a) (max b a) → ∥v s (x s)∥ ≤ C,
     { by_cases (a ≤ b),
       { rw [min_eq_right h, max_eq_left h], 
         intros s hs, apply (hC s), },
       { rw [min_eq_left (le_of_not_le h), max_eq_right (le_of_not_le h)], 
         intros s hs, apply (hC s), }, },
-    have hbound := norm_integral_le_of_norm_le_const hboundab,
+    have hbound := temp.norm_integral_le_of_norm_le_const hboundab,
     erw [dist_eq_norm, norm_eq_abs] at hab,
     replace hab := mul_lt_mul_of_pos_left hab hCpos,
     rw [←mul_div_assoc, mul_div_cancel_left ε (ne_of_lt hCpos).symm, abs_sub] at hab,
@@ -92,7 +112,7 @@ begin
       intros s hs, apply (hC s), },
     { rw [min_eq_left (le_of_not_le h), max_eq_right (le_of_not_le h)], 
       intros s hs, apply (hC s), }, },
-  have hbound := temp.norm_integral_le_of_norm_le_const μ hboundab,
+  have hbound := temp.norm_integral_le_of_norm_le_const hboundab,
   suffices hsuff : abs (b.val - a.val) ≤ 2,
   { have hC2 := (mul_le_mul_left hCpos).2 hsuff, 
     exact (le_trans hbound hC2), },
@@ -109,14 +129,21 @@ def P (v : α → E → E) (I : IVP(v)) : (α →ᵇ E) → (α →ᵇ E) :=
 : P v I x t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
 
 -- TODO: Move. Needs more assumptions.
-private lemma mul_Inf {K : ℝ} {p : ℝ → Prop} 
-: K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, y = K * x ∧ 0 ≤ x ∧ p x} :=
+private lemma mul_Inf {K : nnreal} {p : ℝ → Prop} (h : ∃ x, 0 ≤ x ∧ p x)
+: K.1 * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K.1 * x ∧ 0 ≤ x ∧ p x} :=
 begin 
-  let S := {y : ℝ | ∃ (x : ℝ), y = K * x ∧ 0 ≤ x ∧ p x},
+  rcases h with ⟨i, hnni, hpi⟩,
+  let S := {y | ∃ x, y = K.1 * x ∧ 0 ≤ x ∧ p x},
   apply le_antisymm,
-  { have h1 : (∃ (x : ℝ), x ∈ S) := sorry,
-    have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y) := sorry,
-    rw real.le_Inf S h1 h2, sorry, },
+  { have h1 : (∃ (x : ℝ), x ∈ S) := ⟨K * i, ⟨i, rfl, hnni, hpi⟩⟩,
+    have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y),
+    { existsi (0 : ℝ), rintros y ⟨x, hy, hnnx, hpx⟩,
+      rw hy, exact mul_nonneg K.2 hnnx, },
+    rw real.le_Inf S h1 h2, rintros z ⟨w, hz, hnnw, hpw⟩,
+    rw hz, mono,
+    { refine cInf_le _ ⟨hnnw, hpw⟩, use 0, intros a ha, exact ha.1, },
+    { sorry, },
+    { sorry, } },
   { sorry, },
 end
 
