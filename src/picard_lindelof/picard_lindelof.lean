@@ -13,13 +13,11 @@ section picard_lindelof
 
 local infix ` →ᵇ `:25 := bounded_continuous_function 
 
-#check abs_of_nonpos
-
 -- NOTE: This is meant to be ℝ^n.
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-lemma P.lipschitz_at' (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α)
+lemma P.lipschitz_at (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α)
 : dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
 begin 
     simp, rw dist_eq_norm,
@@ -72,7 +70,10 @@ begin
               { exact abs_nonneg t.1, }, },
           end
     ... ≤ I.K * (dist x y)
-        : sorry --mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) t.2.2
+        : begin 
+            have h := abs_le_abs t.2.2 (neg_le.1 t.2.1), rw abs_one at h,
+            exact mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) h,
+          end
 end
 
 -- lemma P.dist_eq_neg (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) 
@@ -81,14 +82,6 @@ end
 --     simp [dist_eq_norm],
 --     erw [interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)],
 -- end 
-
-lemma P.lipschitz_at (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) 
-: dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
-begin
-    by_cases ht : 0 ≤ t,
-    { exact P.lipschitz_at' x₀ v I x y t ht, },
-    { sorry, },
-end 
 
 -- TODO: Move. 
 private lemma mul_Inf {K : ℝ} (hK : 0 ≤ K) {p : ℝ → Prop} 
@@ -118,28 +111,37 @@ begin
       { exact hp, }, }, },
 end
 
-lemma P.lipschitz (μ : measure α) (v : α → E → E) (I : IVP(v)) 
-: lipschitz_with I.K (P v I) :=
+lemma P.lipschitz (x₀ : E) (v : α → E → E) (I : IVP(v)) 
+: lipschitz_with I.K (P x₀ v I) :=
 begin 
-  intros x y, cases I.K with K hKnonneg,
+  intros x y, cases I, cases I_K with K hnnK,
   unfold edist, rw metric_space.edist_dist, unfold dist,
   rw metric_space.edist_dist, unfold dist, 
-  rw ←ennreal.of_real_eq_coe_nnreal hKnonneg,
-  rw ←ennreal.of_real_mul hKnonneg,
+  rw ←ennreal.of_real_eq_coe_nnreal hnnK,
+  rw ←ennreal.of_real_mul hnnK,
   apply ennreal.of_real_le_of_real,
-  have h1 : ∃ (C : ℝ), 0 ≤ C ∧ ∀ (t : α), dist (x t) (y t) ≤ C := dist_set_exists,
+  have h1 : ∃ (C : ℝ), 0 ≤ C ∧ ∀ (t : α), dist (x t) (y t) ≤ C := 
+    bounded_continuous_function.dist_set_exists,
   have h2 : ∀ (t : α), dist (x t) (y t) ≤ Inf {C : ℝ | 0 ≤ C ∧ ∀ (s : α), dist (x s) (y s) ≤ C},
   { intros t, apply le_cInf,
     { use h1, },
     { intros b hb, exact (hb.2 t), }, },
-  erw mul_Inf hKnonneg h1 h2, apply cInf_le_cInf,
+  erw mul_Inf hnnK h1 h2, apply cInf_le_cInf,
   { use 0, intros b hb, exact hb.1, },
   { cases h1 with C hC, use [K * C, C, ⟨rfl, hC.1, hC.2⟩], },
   clear h1 h2,
   rintros C ⟨C', ⟨hC, hnnC', hC'⟩⟩, rw hC,
-  refine ⟨mul_nonneg hKnonneg hnnC', _⟩, intros s,
+  refine ⟨mul_nonneg hnnK hnnC', _⟩, intros s,
   have hC's := hC' s,
-  sorry,
+  have hdxyle : dist x y ≤ C',
+  { -- TODO: Factor this out.
+    apply cInf_le, 
+    { use 0, intros b hb, exact hb.1, },
+    { exact ⟨hnnC', hC'⟩, }, },
+  let I' : IVP(v) := ⟨⟨K, hnnK⟩, I_hK, I_hlipschitz, I_hbdd, I_hintegrable⟩,
+  have hPsle := P.lipschitz_at x₀ v I' x y s,
+  have hKdxyle : K * dist x y ≤ K * C' := mul_le_mul (le_refl _) hdxyle dist_nonneg hnnK,
+  exact le_trans hPsle hKdxyle,
 end
 
 --lemma P.edist_lt_top : Π (x : A →ᵇ B), edist x (P x) < ⊥ := sorry
