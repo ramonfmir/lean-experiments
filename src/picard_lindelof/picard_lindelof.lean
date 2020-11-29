@@ -1,4 +1,5 @@
 import picard_lindelof.definitions
+import picard_lindelof.other.interval_integral
 
 -- Following Imperial's MA2AA1 notes.
 
@@ -16,24 +17,59 @@ local infix ` →ᵇ `:25 := bounded_continuous_function
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
+-- TODO: Move.
+lemma temp.integral_mono 
+{B : Type*} [normed_group B] [normed_space ℝ B] [second_countable_topology B] 
+[measurable_space B] [linear_order B] [complete_space B] [borel_space B]
+{f g : α → B} (a b : α)
+(hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ g)
+: ∫ t in a..b, f t ≤ ∫ t in a..b, g t := sorry
+
+#check interval_integral.norm_integral_le_of_norm_le_const
+
 lemma P.lipschitz_at (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
 (h0 : x 0 = y 0) (t : α)
-: edist (P v I x t) (P v I y t) ≤ ↑(I.K) * edist x y :=
+: dist (P v I x t) (P v I y t) ≤ 2 * I.K * dist x y :=
 begin 
-    simp, unfold edist, unfold metric_space.edist,
-    rw metric_space.edist_dist, cases I.K with K hK,
-    rw [←ennreal.of_real_eq_coe_nnreal, ←ennreal.of_real_mul hK],
-    apply ennreal.of_real_le_of_real, rw dist_eq_norm, rw ←h0,
+    simp, rw dist_eq_norm, rw ←h0,
     calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
         = ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
         : congr_arg norm $ by abel
     ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
         : by rw interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)
-    -- ... ≤ ∫ s in t0..t, ∥(f s (x s)) - (f s (y s))∥ ∂μ
-    --     : norm_integral_le_integral_norm_Ioc_of_le ht
-    -- ... = ∫ s in t0..t, (dist (f s (x s)) (f s (y s))) ∂μ
-    --     : by congr; ext; exact (dist_eq_norm _ _).symm
-    -- ... ≤ ∫ s in t0..t, K * dist (x s) (y s) ∂μ
+    ... ≤ ∫ s in 0..t, ∥(v s (x s)) - (v s (y s))∥
+        -- TODO: This sorry is for 0 ≤ t. Need to change the interval integral lemma
+        -- so that that condition is not required.
+        : temp.norm_integral_le_integral_norm_Ioc_of_le sorry 
+    ... = ∫ s in 0..t, (dist (v s (x s)) (v s (y s)))
+        : by congr; ext; exact (dist_eq_norm _ _).symm
+    ... ≤ ∫ s in 0..t, I.K * dist (x s) (y s)
+        : begin 
+            -- TODO: Something about integrable (bounded) distances.
+            apply temp.integral_mono 0 t sorry sorry,
+            intros t; dsimp, 
+            exact ((lipschitz_with_iff_dist_le_mul.1 (I.hlipschitz t)) (x t) (y t)),
+        end
+    ... ≤ ∫ s in 0..t, I.K * dist x y
+        : begin 
+            apply temp.integral_mono 0 t sorry sorry,
+            intros t; dsimp, mono,
+            { apply le_cInf,
+              { exact bounded_continuous_function.dist_set_exists, },
+              { intros b hb, exact (hb.2 t), }, },
+            { exact dist_nonneg, },
+            { exact I.K.2, },
+        end
+    ... = (t.1 - 0) * (I.K * dist x y) 
+        : begin
+            rw interval_integral.integral_const',
+            -- TODO: Lemma about volume (Ioc a b).
+            sorry,
+        end 
+    ... ≤ 2 * I.K * (dist x y)
+        : sorry
+end
+
     --     : begin 
     --         have hxsys := λ s, hf s (x s) (y s),
     --         -- TODO: Factor this out. Argument about edist dist and le.
@@ -48,18 +84,16 @@ begin
     --      -- Bound it above by the supremum!
     --      -- Well have something like K * (t - t0) * s ≤ K * s 
     --      -- So we play with the t-t0 and K's and we should be good.
-    ... ≤ K * Inf {C | 0 ≤ C ∧ ∀ t, dist (x t) (y t) ≤ C} : sorry
-end
 
-lemma P.lipschitz (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) : lipschitz_with I.K (P v I) :=
-begin 
-    intros x y,
-    let S := {C | 0 ≤ C ∧ ∀ (a : ℝ), edist (P v I x a) (P v I y a) ≤ C},
-    calc edist (P v I x) (P v I y) 
-        --= Inf S : P.edist_eq_Inf v I x y sorry sorry sorry 
-        -- NOTE: Is this even useful?
-        ≤ ↑(I.K) * edist x y : sorry --supr_le (λ t, P.lipschitz_at_of_lipshitz hf t x y),
-end 
+-- lemma P.lipschitz (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) : lipschitz_with I.K (P v I) :=
+-- begin 
+--     intros x y,
+--     let S := {C | 0 ≤ C ∧ ∀ (a : ℝ), edist (P v I x a) (P v I y a) ≤ C},
+--     calc edist (P v I x) (P v I y) 
+--         --= Inf S : P.edist_eq_Inf v I x y sorry sorry sorry 
+--         -- NOTE: Is this even useful?
+--         ≤ ↑(I.K) * edist x y : sorry --supr_le (λ t, P.lipschitz_at_of_lipshitz hf t x y),
+-- end 
 
 --lemma P.edist_lt_top : Π (x : A →ᵇ B), edist x (P x) < ⊥ := sorry
 
