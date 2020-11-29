@@ -129,22 +129,31 @@ def P (v : α → E → E) (I : IVP(v)) : (α →ᵇ E) → (α →ᵇ E) :=
 : P v I x t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
 
 -- TODO: Move. Needs more assumptions.
-private lemma mul_Inf {K : nnreal} {p : ℝ → Prop} (h : ∃ x, 0 ≤ x ∧ p x)
-: K.1 * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K.1 * x ∧ 0 ≤ x ∧ p x} :=
+private lemma mul_Inf {K : ℝ} (hK : 0 ≤ K) {p : ℝ → Prop} 
+(h : ∃ x, 0 ≤ x ∧ p x) (hp : p (Inf {x | 0 ≤ x ∧ p x}))
+: K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K * x ∧ 0 ≤ x ∧ p x} :=
 begin 
   rcases h with ⟨i, hnni, hpi⟩,
-  let S := {y | ∃ x, y = K.1 * x ∧ 0 ≤ x ∧ p x},
+  let S := {y | ∃ x, y = K * x ∧ 0 ≤ x ∧ p x},
   apply le_antisymm,
   { have h1 : (∃ (x : ℝ), x ∈ S) := ⟨K * i, ⟨i, rfl, hnni, hpi⟩⟩,
     have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y),
     { existsi (0 : ℝ), rintros y ⟨x, hy, hnnx, hpx⟩,
-      rw hy, exact mul_nonneg K.2 hnnx, },
+      rw hy, exact mul_nonneg hK hnnx, },
     rw real.le_Inf S h1 h2, rintros z ⟨w, hz, hnnw, hpw⟩,
     rw hz, mono,
     { refine cInf_le _ ⟨hnnw, hpw⟩, use 0, intros a ha, exact ha.1, },
-    { sorry, },
-    { sorry, } },
-  { sorry, },
+    { apply le_cInf,
+      { use [i, ⟨hnni, hpi⟩], },
+      { intros b hb, exact hb.1, }, }, },
+  { apply real.Inf_le,
+    { use [0], intros y hy, rcases hy with ⟨x, ⟨hy, hnnx, hpx⟩⟩,
+      rw hy, exact mul_nonneg hK hnnx, },
+    { use [Inf {x : ℝ | 0 ≤ x ∧ p x}], refine ⟨rfl, _, _⟩, 
+      { apply le_cInf,
+        { use [i, ⟨hnni, hpi⟩], },
+        { intros b hb, exact hb.1, }, },
+      { exact hp, }, }, },
 end
 
 lemma P.lipschitz (μ : measure α) (v : α → E → E) (I : IVP(v)) 
@@ -156,6 +165,7 @@ begin
   rw ←ennreal.of_real_eq_coe_nnreal hKnonneg,
   rw ←ennreal.of_real_mul hKnonneg,
   apply ennreal.of_real_le_of_real,
+  --erw mul_Inf _ _,
   sorry,
 end
 
