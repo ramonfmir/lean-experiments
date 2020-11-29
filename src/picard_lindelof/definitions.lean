@@ -128,7 +128,7 @@ def P (v : α → E → E) (I : IVP(v)) : (α →ᵇ E) → (α →ᵇ E) :=
 @[simp] lemma P.def (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) (t : α)
 : P v I x t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
 
--- TODO: Move. Needs more assumptions.
+-- TODO: Move. 
 private lemma mul_Inf {K : ℝ} (hK : 0 ≤ K) {p : ℝ → Prop} 
 (h : ∃ x, 0 ≤ x ∧ p x) (hp : p (Inf {x | 0 ≤ x ∧ p x}))
 : K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K * x ∧ 0 ≤ x ∧ p x} :=
@@ -165,7 +165,18 @@ begin
   rw ←ennreal.of_real_eq_coe_nnreal hKnonneg,
   rw ←ennreal.of_real_mul hKnonneg,
   apply ennreal.of_real_le_of_real,
-  --erw mul_Inf _ _,
+  have h1 : ∃ (C : ℝ), 0 ≤ C ∧ ∀ (t : α), dist (x t) (y t) ≤ C := dist_set_exists,
+  have h2 : ∀ (t : α), dist (x t) (y t) ≤ Inf {C : ℝ | 0 ≤ C ∧ ∀ (s : α), dist (x s) (y s) ≤ C},
+  { intros t, apply le_cInf,
+    { use h1, },
+    { intros b hb, exact (hb.2 t), }, },
+  erw mul_Inf hKnonneg h1 h2, apply cInf_le_cInf,
+  { use 0, intros b hb, exact hb.1, },
+  { cases h1 with C hC, use [K * C, C, ⟨rfl, hC.1, hC.2⟩], },
+  clear h1 h2,
+  rintros C ⟨C', ⟨hC, hnnC', hC'⟩⟩, rw hC,
+  refine ⟨mul_nonneg hKnonneg hnnC', _⟩, intros s,
+  have hC's := hC' s,
   sorry,
 end
 
