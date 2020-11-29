@@ -13,33 +13,35 @@ section picard_lindelof
 
 local infix ` →ᵇ `:25 := bounded_continuous_function 
 
+#check abs_of_nonpos
+
 -- NOTE: This is meant to be ℝ^n.
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-lemma P.lipschitz_at' (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) (ht : 0 ≤ t)
+lemma P.lipschitz_at' (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α)
 : dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
 begin 
     simp, rw dist_eq_norm,
     calc ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
         = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
         : by rw interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)
-    ... ≤ ∫ s in 0..t, ∥(v s (x s)) - (v s (y s))∥
-        -- TODO: This sorry is for 0 ≤ t. Need to change the interval integral lemma
-        -- so that that condition is not required.
-        : temp.norm_integral_le_integral_norm_Ioc_of_le ht 
-    ... = ∫ s in 0..t, (dist (v s (x s)) (v s (y s)))
+    ... ≤ ∫ s in Ioc (min 0 t) (max 0 t), ∥(v s (x s)) - (v s (y s))∥
+        : interval_integral.norm_integral_le_integral_norm_Ioc
+    ... = ∫ s in Ioc (min 0 t) (max 0 t), (dist (v s (x s)) (v s (y s)))
         : by congr; ext; exact (dist_eq_norm _ _).symm
-    ... ≤ ∫ s in 0..t, I.K * dist (x s) (y s)
+    ... ≤ ∫ s in Ioc (min 0 t) (max 0 t), I.K * dist (x s) (y s)
         : begin 
-            -- TODO: Something about integrable (bounded) distances.
-            apply temp.integral_mono 0 t sorry sorry,
+            apply integral_mono,
+            { -- TODO: Something about integrable (bounded) distances.
+              sorry, },
+            { sorry, },
             intros t; dsimp, 
             exact ((lipschitz_with_iff_dist_le_mul.1 (I.hlipschitz t)) (x t) (y t)),
         end
-    ... ≤ ∫ s in 0..t, I.K * dist x y
+    ... ≤ ∫ s in Ioc (min 0 t) (max 0 t), I.K * dist x y
         : begin 
-            apply temp.integral_mono 0 t sorry sorry,
+            apply integral_mono sorry sorry,
             intros t; dsimp, mono,
             { apply le_cInf,
               { exact bounded_continuous_function.dist_set_exists, },
@@ -47,14 +49,30 @@ begin
             { exact dist_nonneg, },
             { exact I.K.2, },
         end
-    ... = (t.1 - 0) * (I.K * dist x y) 
-        : by rw interval_integral.integral_const'; 
-             simp only [α.volume_Ioc, ennreal.to_real_of_real', ←neg_sub t.1];
-             simp only [max_zero_sub_eq_self]; refl
-    ... = t.1 * (I.K * dist x y) 
-        : by simp
+    ... ≤ (abs t.1) * (I.K * dist x y) 
+        : begin 
+            rw [measure_theory.integral_const, measure.restrict_apply_univ],
+            simp only [α.volume_Ioc, ennreal.to_real_of_real', ←neg_sub t.1],
+            -- TODO: This should be simpler.
+            by_cases h : 0 ≤ t,
+            { erw [max_eq_right h, min_eq_left h, sub_zero t.val],
+              replace h : 0 ≤ t.1 := h, rw [max_eq_left h],
+              refine (mul_le_mul _ (le_refl _) _ _),
+              { exact le_abs_self t.1, },
+              { exact (mul_nonneg I.K.2 dist_nonneg), },
+              { exact abs_nonneg t.1, }, },
+            { replace h := le_of_not_le h,
+              erw [max_eq_left h, min_eq_right h, zero_sub t.val],
+              replace h : t.1 ≤ 0 := h, 
+              have h' := neg_le_neg h,
+              rw neg_zero at h', rw [max_eq_left h'],
+              refine (mul_le_mul _ (le_refl _) _ _),
+              { rw [abs_of_nonpos h], },
+              { exact (mul_nonneg I.K.2 dist_nonneg), },
+              { exact abs_nonneg t.1, }, },
+          end
     ... ≤ I.K * (dist x y)
-        : mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) t.2.2
+        : sorry --mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) t.2.2
 end
 
 -- lemma P.dist_eq_neg (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) 
