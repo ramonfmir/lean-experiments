@@ -10,12 +10,21 @@ section domain
 def α : Type := subtype (Icc (-1 : ℝ) (1 : ℝ))
 
 instance : has_zero α := ⟨⟨0, ⟨by linarith, by linarith⟩⟩⟩
+
 instance : nonempty α := ⟨0⟩
+
+instance : has_neg α := ⟨λ a, ⟨-a.1, ⟨neg_le_neg a.2.2, neg_le.1 a.2.1⟩⟩⟩
+
 instance : linear_order α := by unfold α; apply_instance
+
 instance : topological_space α := by unfold α; apply_instance
+
 instance : measurable_space α := by unfold α; apply_instance
+
 instance : metric_space α := by unfold α; apply_instance
+
 instance : opens_measurable_space α := subtype.opens_measurable_space _
+
 instance : order_closed_topology α := {
   is_closed_le' := begin 
     -- TODO: Same technique can be used to prove a general statement about subtypes.

@@ -20,14 +20,28 @@ begin
     exact hle,
 end 
 
-lemma temp.norm_integral_le_of_norm_le_const' 
-    {a b C : ℝ} (hab : a ≤ b) {f : ℝ → E}
-    (h : ∀ x ∈ Ioc a b, ∥f x∥ ≤ C) :
-    ∥∫ x in a..b, f x∥ ≤ C * abs (b - a) :=
-begin
-    apply interval_integral.norm_integral_le_of_norm_le_const,
-    rw [min_eq_left hab, max_eq_right hab], exact h,
+--TODO: Move. 
+lemma temp.norm_integral_le_of_norm_le_const_ae {a b : α} {C : ℝ} {f : α → E}
+  (h : filter.eventually (λ x, x ∈ Ioc (min a b) (max a b) → ∥f x∥ ≤ C) volume.ae) :
+  ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
+begin 
+  rw [norm_integral_eq_norm_integral_Ioc],
+  have hrw : ∀ {a b : α}, volume (Ioc a b) = ennreal.of_real (b.1 - a.1) := λ a b, α.volume_Ioc,
+  convert norm_set_integral_le_of_norm_le_const_ae'' _ is_measurable_Ioc h,
+  { have hmax : (max a b).val = max a.val b.val := by unfold max; split_ifs; refl,
+    have hmin : (min a b).val = min a.val b.val := by unfold min; split_ifs; refl,
+    rw [hrw, hmax, hmin, max_sub_min_eq_abs, ennreal.to_real_of_real (abs_nonneg _)], },
+  { simp only [hrw, ennreal.of_real_lt_top], }
 end
+
+lemma temp.norm_integral_le_of_norm_le_const {a b : α} {C : ℝ} {f : α → E}
+  (h : ∀ x ∈ Ioc (min a b) (max a b), ∥f x∥ ≤ C) :
+  ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
+temp.norm_integral_le_of_norm_le_const_ae (filter.eventually_of_forall h)
+
+lemma temp.integral_mono_ae {f g : α → E} (a b : α)
+(hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ᵐ[volume] g)
+: ∫ t in a..b, f t ≤ ∫ t in a..b, g t := sorry
 
 lemma temp.integral_mono {f g : α → E} (a b : α)
 (hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ g)

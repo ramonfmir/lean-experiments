@@ -2,6 +2,7 @@ import topology.bounded_continuous_function
 import measure_theory.interval_integral
 
 import picard_lindelof.domain
+import picard_lindelof.other.interval_integral
 
 -- Following Imperial's MA2AA1 notes.
 -- Another useful resource: Oxford DE1 notes.
@@ -29,16 +30,16 @@ notation `IVP(` v `)` := initial_value_problem v
 open bounded_continuous_function
 
 -- The Picard operator as a function.
-def P.to_fun (v : α → E → E) (x : α →ᵇ E) : α → E := 
-λ t, (x 0) + ∫ s in 0..t, v s (x s)
+def P.to_fun (x₀ : E) (v : α → E → E) (x : α →ᵇ E) : α → E := 
+λ t, x₀ + ∫ s in 0..t, v s (x s)
 
 -- Characterisation of distance between applications of P.
-def P.to_fun.dist_eq (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) (a b : α)
-: dist (P.to_fun v x a) (P.to_fun v x b) = ∥∫ s in a..b, v s (x s)∥ :=
+def P.to_fun.dist_eq (x₀ : E) (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) (a b : α)
+: dist (P.to_fun x₀ v x a) (P.to_fun x₀ v x b) = ∥∫ s in a..b, v s (x s)∥ :=
 begin 
     rw dist_eq_norm, simp only [P.to_fun],
     have hrw1 : 
-        (x 0) + (∫ s in 0..a, v s (x s)) - ((x 0) + ∫ s in 0..b, v s (x s)) =
+        x₀ + (∫ s in 0..a, v s (x s)) - (x₀ + ∫ s in 0..b, v s (x s)) =
         (∫ s in 0..a, v s (x s)) - (∫ s in 0..b, v s (x s)) := by abel,
     rw hrw1, clear hrw1,
     rw [interval_integral.integral_symm a 0],
@@ -58,34 +59,14 @@ begin
     rw [hadd, norm_neg],
 end
 
---TODO: Move. This is probably not mathlib material though.
-private lemma temp.norm_integral_le_of_norm_le_const_ae {a b : α} {C : ℝ} {f : α → E}
-  (h : filter.eventually (λ x, x ∈ Ioc (min a b) (max a b) → ∥f x∥ ≤ C) volume.ae) :
-  ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
-begin 
-  rw [norm_integral_eq_norm_integral_Ioc],
-  -- We should be able to prove it from the definition.
-  have hrw : ∀ {a b : α}, volume (Ioc a b) = ennreal.of_real (b.1 - a.1) := sorry,
-  convert norm_set_integral_le_of_norm_le_const_ae'' _ is_measurable_Ioc h,
-  { have hmax : (max a b).val = max a.val b.val := by unfold max; split_ifs; refl,
-    have hmin : (min a b).val = min a.val b.val := by unfold min; split_ifs; refl,
-    rw [hrw, hmax, hmin, max_sub_min_eq_abs, ennreal.to_real_of_real (abs_nonneg _)], },
-  { simp only [hrw, ennreal.of_real_lt_top], }
-end
-
-private lemma temp.norm_integral_le_of_norm_le_const {a b : α} {C : ℝ} {f : α → E}
-  (h : ∀ x ∈ Ioc (min a b) (max a b), ∥f x∥ ≤ C) :
-  ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
-temp.norm_integral_le_of_norm_le_const_ae (filter.eventually_of_forall h)
-
 -- The Picard operator is continuous!
-lemma P.to_fun.continuous (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
-: continuous (P.to_fun v x) :=
+lemma P.to_fun.continuous (x₀ : E) (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
+: continuous (P.to_fun x₀ v x) :=
 begin
     rcases (I.hbdd x) with ⟨C, ⟨hCpos, hC⟩⟩,
     rw metric.continuous_iff,
     intros a ε hε, use [ε/C, div_pos hε hCpos],
-    intros b hab, rw [P.to_fun.dist_eq v I x],
+    intros b hab, rw [P.to_fun.dist_eq x₀ v I x],
     have hboundab : ∀ s, s ∈ Ioc (min b a) (max b a) → ∥v s (x s)∥ ≤ C,
     { by_cases (a ≤ b),
       { rw [min_eq_right h, max_eq_left h], 
@@ -100,11 +81,11 @@ begin
 end
 
 -- The Picard operator is bounded.
-lemma P.to_fun.bounded (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
-: ∃ C, ∀ a b, dist (P.to_fun v x a) (P.to_fun v x b) ≤ C := 
+lemma P.to_fun.bounded (x₀ : E) (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) 
+: ∃ C, ∀ a b, dist (P.to_fun x₀ v x a) (P.to_fun x₀ v x b) ≤ C := 
 begin 
   rcases (I.hbdd x) with ⟨C, ⟨hCpos, hC⟩⟩, use [C * 2],
-  intros a b, rw [P.to_fun.dist_eq v I x],
+  intros a b, rw [P.to_fun.dist_eq x₀ v I x],
   -- Note that this is the same as for continuity. Generalise.
   have hboundab : ∀ s, s ∈ Ioc (min a b) (max a b) → ∥v s (x s)∥ ≤ C,
   { by_cases (b ≤ a),
@@ -121,64 +102,12 @@ begin
 end
 
 -- Picard operator.
-def P (v : α → E → E) (I : IVP(v)) : (α →ᵇ E) → (α →ᵇ E) :=
-λ x, ⟨P.to_fun v x, ⟨P.to_fun.continuous v I x, P.to_fun.bounded v I x⟩⟩
+def P (x₀ : E) (v : α → E → E) (I : IVP(v)) : (α →ᵇ E) → (α →ᵇ E) :=
+λ x, ⟨P.to_fun x₀ v x, ⟨P.to_fun.continuous x₀ v I x, P.to_fun.bounded x₀ v I x⟩⟩
 
 -- Definition of application.
-@[simp] lemma P.def (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) (t : α)
-: P v I x t = (x 0) + ∫ s in 0..t, v s (x s) := rfl
-
--- TODO: Move. 
-private lemma mul_Inf {K : ℝ} (hK : 0 ≤ K) {p : ℝ → Prop} 
-(h : ∃ x, 0 ≤ x ∧ p x) (hp : p (Inf {x | 0 ≤ x ∧ p x}))
-: K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K * x ∧ 0 ≤ x ∧ p x} :=
-begin 
-  rcases h with ⟨i, hnni, hpi⟩,
-  let S := {y | ∃ x, y = K * x ∧ 0 ≤ x ∧ p x},
-  apply le_antisymm,
-  { have h1 : (∃ (x : ℝ), x ∈ S) := ⟨K * i, ⟨i, rfl, hnni, hpi⟩⟩,
-    have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y),
-    { existsi (0 : ℝ), rintros y ⟨x, hy, hnnx, hpx⟩,
-      rw hy, exact mul_nonneg hK hnnx, },
-    rw real.le_Inf S h1 h2, rintros z ⟨w, hz, hnnw, hpw⟩,
-    rw hz, mono,
-    { refine cInf_le _ ⟨hnnw, hpw⟩, use 0, intros a ha, exact ha.1, },
-    { apply le_cInf,
-      { use [i, ⟨hnni, hpi⟩], },
-      { intros b hb, exact hb.1, }, }, },
-  { apply real.Inf_le,
-    { use [0], intros y hy, rcases hy with ⟨x, ⟨hy, hnnx, hpx⟩⟩,
-      rw hy, exact mul_nonneg hK hnnx, },
-    { use [Inf {x : ℝ | 0 ≤ x ∧ p x}], refine ⟨rfl, _, _⟩, 
-      { apply le_cInf,
-        { use [i, ⟨hnni, hpi⟩], },
-        { intros b hb, exact hb.1, }, },
-      { exact hp, }, }, },
-end
-
-lemma P.lipschitz (μ : measure α) (v : α → E → E) (I : IVP(v)) 
-: lipschitz_with I.K (P v I) :=
-begin 
-  intros x y, cases I.K with K hKnonneg,
-  unfold edist, rw metric_space.edist_dist, unfold dist,
-  rw metric_space.edist_dist, unfold dist, 
-  rw ←ennreal.of_real_eq_coe_nnreal hKnonneg,
-  rw ←ennreal.of_real_mul hKnonneg,
-  apply ennreal.of_real_le_of_real,
-  have h1 : ∃ (C : ℝ), 0 ≤ C ∧ ∀ (t : α), dist (x t) (y t) ≤ C := dist_set_exists,
-  have h2 : ∀ (t : α), dist (x t) (y t) ≤ Inf {C : ℝ | 0 ≤ C ∧ ∀ (s : α), dist (x s) (y s) ≤ C},
-  { intros t, apply le_cInf,
-    { use h1, },
-    { intros b hb, exact (hb.2 t), }, },
-  erw mul_Inf hKnonneg h1 h2, apply cInf_le_cInf,
-  { use 0, intros b hb, exact hb.1, },
-  { cases h1 with C hC, use [K * C, C, ⟨rfl, hC.1, hC.2⟩], },
-  clear h1 h2,
-  rintros C ⟨C', ⟨hC, hnnC', hC'⟩⟩, rw hC,
-  refine ⟨mul_nonneg hKnonneg hnnC', _⟩, intros s,
-  have hC's := hC' s,
-  sorry,
-end
+@[simp] lemma P.def (x₀ : E) (v : α → E → E) (I : IVP(v)) (x : α →ᵇ E) (t : α)
+: P x₀ v I x t = x₀ + ∫ s in 0..t, v s (x s) := rfl
 
 end picard_operator
 
@@ -191,6 +120,6 @@ variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [lin
 
 noncomputable def P.recursive (v : ℝ → E → E) (x₀ : E) : ℕ → (ℝ → E)
 | 0     := λ t, x₀
-| (n+1) := λ t, x₀ + (∫ s in (0 : ℝ)..(t : ℝ), v s (P.recursive n s))
+| (n+1) := λ t, x₀ + (∫ s in 0..t, v s (P.recursive n s))
 
 end picard_operator_recursive

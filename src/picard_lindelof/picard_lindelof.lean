@@ -17,22 +17,17 @@ local infix ` →ᵇ `:25 := bounded_continuous_function
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-#check mul_le_of_le_one_left
-
-lemma P.lipschitz_at (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
-(h0 : x 0 = y 0) (t : α)
-: dist (P v I x t) (P v I y t) ≤ I.K * dist x y :=
+lemma P.lipschitz_at' (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) (ht : 0 ≤ t)
+: dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
 begin 
-    simp, rw dist_eq_norm, rw ←h0,
-    calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
-        = ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
-        : congr_arg norm $ by abel
-    ... = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
+    simp, rw dist_eq_norm,
+    calc ∥(∫ s in 0..t, v s (x s)) - (∫ s in 0..t, v s (y s))∥
+        = ∥∫ s in 0..t, (v s (x s)) - (v s (y s))∥ 
         : by rw interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)
     ... ≤ ∫ s in 0..t, ∥(v s (x s)) - (v s (y s))∥
         -- TODO: This sorry is for 0 ≤ t. Need to change the interval integral lemma
         -- so that that condition is not required.
-        : temp.norm_integral_le_integral_norm_Ioc_of_le sorry 
+        : temp.norm_integral_le_integral_norm_Ioc_of_le ht 
     ... = ∫ s in 0..t, (dist (v s (x s)) (v s (y s)))
         : by congr; ext; exact (dist_eq_norm _ _).symm
     ... ≤ ∫ s in 0..t, I.K * dist (x s) (y s)
@@ -62,30 +57,72 @@ begin
         : mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) t.2.2
 end
 
-    --     : begin 
-    --         have hxsys := λ s, hf s (x s) (y s),
-    --         -- TODO: Factor this out. Argument about edist dist and le.
-    --         have hrw : (λ s, dist (f s (x s)) (f s (y s))) ≤ (λ s, K * dist (x s) (y s)) := sorry,
-    --         -- This follows from interval_integral.integral_mono.
-    --         have h := interval_integral.integral_mono μ t0 t hx hy,
-    --         -- TODO: We also need that dist is integrable... Arguments above
-    --         -- should not be hx and hy..
-    --         sorry,
-    --      end
-    --      -- Then we use norm_integral_le_of_norm_le_const
-    --      -- Bound it above by the supremum!
-    --      -- Well have something like K * (t - t0) * s ≤ K * s 
-    --      -- So we play with the t-t0 and K's and we should be good.
-
--- lemma P.lipschitz (v : ℝ → E → E) (I : IVP(v)) (x : C(E)) : lipschitz_with I.K (P v I) :=
+-- lemma P.dist_eq_neg (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) 
+-- : dist (P x₀ v I x t) (P x₀ v I y t) = dist (P x₀ v I x (-t)) (P x₀ v I y (-t)) :=
 -- begin 
---     intros x y,
---     let S := {C | 0 ≤ C ∧ ∀ (a : ℝ), edist (P v I x a) (P v I y a) ≤ C},
---     calc edist (P v I x) (P v I y) 
---         --= Inf S : P.edist_eq_Inf v I x y sorry sorry sorry 
---         -- NOTE: Is this even useful?
---         ≤ ↑(I.K) * edist x y : sorry --supr_le (λ t, P.lipschitz_at_of_lipshitz hf t x y),
+--     simp [dist_eq_norm],
+--     erw [interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)],
 -- end 
+
+lemma P.lipschitz_at (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) 
+: dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
+begin
+    by_cases ht : 0 ≤ t,
+    { exact P.lipschitz_at' x₀ v I x y t ht, },
+    { sorry, },
+end 
+
+-- TODO: Move. 
+private lemma mul_Inf {K : ℝ} (hK : 0 ≤ K) {p : ℝ → Prop} 
+(h : ∃ x, 0 ≤ x ∧ p x) (hp : p (Inf {x | 0 ≤ x ∧ p x}))
+: K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K * x ∧ 0 ≤ x ∧ p x} :=
+begin 
+  rcases h with ⟨i, hnni, hpi⟩,
+  let S := {y | ∃ x, y = K * x ∧ 0 ≤ x ∧ p x},
+  apply le_antisymm,
+  { have h1 : (∃ (x : ℝ), x ∈ S) := ⟨K * i, ⟨i, rfl, hnni, hpi⟩⟩,
+    have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y),
+    { existsi (0 : ℝ), rintros y ⟨x, hy, hnnx, hpx⟩,
+      rw hy, exact mul_nonneg hK hnnx, },
+    rw real.le_Inf S h1 h2, rintros z ⟨w, hz, hnnw, hpw⟩,
+    rw hz, mono,
+    { refine cInf_le _ ⟨hnnw, hpw⟩, use 0, intros a ha, exact ha.1, },
+    { apply le_cInf,
+      { use [i, ⟨hnni, hpi⟩], },
+      { intros b hb, exact hb.1, }, }, },
+  { apply real.Inf_le,
+    { use [0], intros y hy, rcases hy with ⟨x, ⟨hy, hnnx, hpx⟩⟩,
+      rw hy, exact mul_nonneg hK hnnx, },
+    { use [Inf {x : ℝ | 0 ≤ x ∧ p x}], refine ⟨rfl, _, _⟩, 
+      { apply le_cInf,
+        { use [i, ⟨hnni, hpi⟩], },
+        { intros b hb, exact hb.1, }, },
+      { exact hp, }, }, },
+end
+
+lemma P.lipschitz (μ : measure α) (v : α → E → E) (I : IVP(v)) 
+: lipschitz_with I.K (P v I) :=
+begin 
+  intros x y, cases I.K with K hKnonneg,
+  unfold edist, rw metric_space.edist_dist, unfold dist,
+  rw metric_space.edist_dist, unfold dist, 
+  rw ←ennreal.of_real_eq_coe_nnreal hKnonneg,
+  rw ←ennreal.of_real_mul hKnonneg,
+  apply ennreal.of_real_le_of_real,
+  have h1 : ∃ (C : ℝ), 0 ≤ C ∧ ∀ (t : α), dist (x t) (y t) ≤ C := dist_set_exists,
+  have h2 : ∀ (t : α), dist (x t) (y t) ≤ Inf {C : ℝ | 0 ≤ C ∧ ∀ (s : α), dist (x s) (y s) ≤ C},
+  { intros t, apply le_cInf,
+    { use h1, },
+    { intros b hb, exact (hb.2 t), }, },
+  erw mul_Inf hKnonneg h1 h2, apply cInf_le_cInf,
+  { use 0, intros b hb, exact hb.1, },
+  { cases h1 with C hC, use [K * C, C, ⟨rfl, hC.1, hC.2⟩], },
+  clear h1 h2,
+  rintros C ⟨C', ⟨hC, hnnC', hC'⟩⟩, rw hC,
+  refine ⟨mul_nonneg hKnonneg hnnC', _⟩, intros s,
+  have hC's := hC' s,
+  sorry,
+end
 
 --lemma P.edist_lt_top : Π (x : A →ᵇ B), edist x (P x) < ⊥ := sorry
 
