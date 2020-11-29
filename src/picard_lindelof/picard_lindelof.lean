@@ -17,19 +17,11 @@ local infix ` →ᵇ `:25 := bounded_continuous_function
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
--- TODO: Move.
-lemma temp.integral_mono 
-{B : Type*} [normed_group B] [normed_space ℝ B] [second_countable_topology B] 
-[measurable_space B] [linear_order B] [complete_space B] [borel_space B]
-{f g : α → B} (a b : α)
-(hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ g)
-: ∫ t in a..b, f t ≤ ∫ t in a..b, g t := sorry
-
-#check interval_integral.norm_integral_le_of_norm_le_const
+#check mul_le_of_le_one_left
 
 lemma P.lipschitz_at (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
 (h0 : x 0 = y 0) (t : α)
-: dist (P v I x t) (P v I y t) ≤ 2 * I.K * dist x y :=
+: dist (P v I x t) (P v I y t) ≤ I.K * dist x y :=
 begin 
     simp, rw dist_eq_norm, rw ←h0,
     calc ∥((x 0) + ∫ s in 0..t, v s (x s)) - ((x 0) + ∫ s in 0..t, v s (y s))∥ 
@@ -61,13 +53,13 @@ begin
             { exact I.K.2, },
         end
     ... = (t.1 - 0) * (I.K * dist x y) 
-        : begin
-            rw interval_integral.integral_const',
-            -- TODO: Lemma about volume (Ioc a b).
-            sorry,
-        end 
-    ... ≤ 2 * I.K * (dist x y)
-        : sorry
+        : by rw interval_integral.integral_const'; 
+             simp only [α.volume_Ioc, ennreal.to_real_of_real', ←neg_sub t.1];
+             simp only [max_zero_sub_eq_self]; refl
+    ... = t.1 * (I.K * dist x y) 
+        : by simp
+    ... ≤ I.K * (dist x y)
+        : mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) t.2.2
 end
 
     --     : begin 

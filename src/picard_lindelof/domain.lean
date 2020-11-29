@@ -94,4 +94,21 @@ end
 
 instance : measure_space α := ⟨α.volume⟩
 
+lemma α.coe_Ioc {a b : α} : coe '' (Ioc a b) = Ioc a.1 b.1 :=
+begin
+  dsimp [Ioc, set.image], ext x, split, 
+  { rintros ⟨c, ⟨⟨hac, hcb⟩, hc⟩⟩, rw ←hc, exact ⟨hac, hcb⟩, },
+  { rintros ⟨hax, hxb⟩, 
+    have hlbx := le_of_lt (lt_of_le_of_lt a.2.1 hax),
+    have hubx := le_trans hxb b.2.2,
+    use [⟨x, ⟨hlbx, hubx⟩⟩, ⟨⟨hax, hxb⟩, rfl⟩], },
+end 
+
+@[simp] lemma α.volume_Ioc {a b : α} : volume (Ioc a b) = ennreal.of_real (b.1 - a.1) :=
+begin 
+  simp [volume, α.volume], rw measure.of_measurable_apply,
+  { rw α.coe_Ioc, erw (lebesgue_outer_Ioc a.1 b.1), refl, },
+  { exact is_measurable_Ioc, },
+end 
+
 end domain
