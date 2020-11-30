@@ -1,5 +1,6 @@
 import picard_lindelof.definitions
 import picard_lindelof.other.interval_integral
+import picard_lindelof.other.mul_Inf
 
 -- Following Imperial's MA2AA1 notes.
 
@@ -17,6 +18,26 @@ local infix ` →ᵇ `:25 := bounded_continuous_function
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
+
+
+lemma dist_v_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
+: integrable (λ t, dist (v t (x t)) (v t (y t))) :=
+begin 
+  sorry
+end 
+
+lemma dist_pointwise_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
+: integrable (λ t, dist (x t) (y t)) :=
+begin 
+  sorry
+end 
+
+lemma K_dist_pointwise_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
+: integrable (λ t, I.K.1 * dist (x t) (y t)) :=
+integrable.const_mul (dist_pointwise_integrable v I x y) I.K.1
+
+--integrable (λ (a : α), ↑(I.K) * dist (⇑x a) (⇑y a)) (volume.restrict (Ioc (min 0 t) (max 0 t)))
+
 lemma P.lipschitz_at (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α)
 : dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
 begin 
@@ -31,15 +52,26 @@ begin
     ... ≤ ∫ s in Ioc (min 0 t) (max 0 t), I.K * dist (x s) (y s)
         : begin 
             apply integral_mono,
-            { -- TODO: Something about integrable (bounded) distances.
-              sorry, },
-            { sorry, },
+            { have hd := dist_v_integrable v I x y,
+              show integrable_on (λ t, dist (v t (x t)) (v t (y t))) _,
+              exact integrable_on.mono_set (integrable_on_univ.2 hd) (λ s hs, trivial), },
+            { have hd := K_dist_pointwise_integrable v I x y,
+              show integrable_on (λ t, I.K.1 * dist (x t) (y t)) _,
+              exact integrable_on.mono_set (integrable_on_univ.2 hd) (λ s hs, trivial), },
             intros t; dsimp, 
             exact ((lipschitz_with_iff_dist_le_mul.1 (I.hlipschitz t)) (x t) (y t)),
         end
     ... ≤ ∫ s in Ioc (min 0 t) (max 0 t), I.K * dist x y
         : begin 
-            apply integral_mono sorry sorry,
+            apply integral_mono,
+            { have hd := K_dist_pointwise_integrable v I x y,
+              show integrable_on (λ t, I.K.1 * dist (x t) (y t)) _,
+              exact integrable_on.mono_set (integrable_on_univ.2 hd) (λ s hs, trivial), },
+            { --have hi := integrable_const (I.K.1 * dist x y),
+              show integrable_on (λ t, I.K.1 * dist x y) (Ioc (min 0 t) (max 0 t)) volume,
+               exact integrable_on.mono_set 
+                (integrable_on_univ.2 (integrable_const (I.K.1 * dist x y)))
+                (λ s hs, trivial), },
             intros t; dsimp, mono,
             { apply le_cInf,
               { exact bounded_continuous_function.dist_set_exists, },
@@ -74,41 +106,6 @@ begin
             have h := abs_le_abs t.2.2 (neg_le.1 t.2.1), rw abs_one at h,
             exact mul_le_of_le_one_left (mul_nonneg I.K.2 dist_nonneg) h,
           end
-end
-
--- lemma P.dist_eq_neg (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α) 
--- : dist (P x₀ v I x t) (P x₀ v I y t) = dist (P x₀ v I x (-t)) (P x₀ v I y (-t)) :=
--- begin 
---     simp [dist_eq_norm],
---     erw [interval_integral.integral_sub (I.hintegrable x t) (I.hintegrable y t)],
--- end 
-
--- TODO: Move. 
-private lemma mul_Inf {K : ℝ} (hK : 0 ≤ K) {p : ℝ → Prop} 
-(h : ∃ x, 0 ≤ x ∧ p x) (hp : p (Inf {x | 0 ≤ x ∧ p x}))
-: K * Inf {x | 0 ≤ x ∧ p x} = Inf {y | ∃ x, (y : ℝ) = K * x ∧ 0 ≤ x ∧ p x} :=
-begin 
-  rcases h with ⟨i, hnni, hpi⟩,
-  let S := {y | ∃ x, y = K * x ∧ 0 ≤ x ∧ p x},
-  apply le_antisymm,
-  { have h1 : (∃ (x : ℝ), x ∈ S) := ⟨K * i, ⟨i, rfl, hnni, hpi⟩⟩,
-    have h2 : (∃ (x : ℝ), ∀ (y : ℝ), y ∈ S → x ≤ y),
-    { existsi (0 : ℝ), rintros y ⟨x, hy, hnnx, hpx⟩,
-      rw hy, exact mul_nonneg hK hnnx, },
-    rw real.le_Inf S h1 h2, rintros z ⟨w, hz, hnnw, hpw⟩,
-    rw hz, mono,
-    { refine cInf_le _ ⟨hnnw, hpw⟩, use 0, intros a ha, exact ha.1, },
-    { apply le_cInf,
-      { use [i, ⟨hnni, hpi⟩], },
-      { intros b hb, exact hb.1, }, }, },
-  { apply real.Inf_le,
-    { use [0], intros y hy, rcases hy with ⟨x, ⟨hy, hnnx, hpx⟩⟩,
-      rw hy, exact mul_nonneg hK hnnx, },
-    { use [Inf {x : ℝ | 0 ≤ x ∧ p x}], refine ⟨rfl, _, _⟩, 
-      { apply le_cInf,
-        { use [i, ⟨hnni, hpi⟩], },
-        { intros b hb, exact hb.1, }, },
-      { exact hp, }, }, },
 end
 
 lemma P.lipschitz (x₀ : E) (v : α → E → E) (I : IVP(v)) 

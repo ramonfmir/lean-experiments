@@ -120,4 +120,28 @@ begin
   { exact is_measurable_Ioc, },
 end 
 
+lemma α.coe_Icc {a b : α} : coe '' (Icc a b) = Icc a.1 b.1 :=
+begin
+  dsimp [Ioc, set.image], ext x, split, 
+  { rintros ⟨c, ⟨⟨hac, hcb⟩, hc⟩⟩, rw ←hc, exact ⟨hac, hcb⟩, },
+  { rintros ⟨hax, hxb⟩, 
+    have hlbx := le_trans a.2.1 hax,
+    have hubx := le_trans hxb b.2.2,
+    use [⟨x, ⟨hlbx, hubx⟩⟩, ⟨⟨hax, hxb⟩, rfl⟩], },
+end 
+
+@[simp] lemma α.volume_Icc {a b : α} : volume (Icc a b) = ennreal.of_real (b.1 - a.1) :=
+begin 
+  simp [volume, α.volume], rw measure.of_measurable_apply,
+  { rw α.coe_Icc, erw (lebesgue_outer_Icc a.1 b.1), refl, },
+  { exact is_measurable_Icc, },
+end 
+
+instance : finite_measure (volume : measure α) :=
+begin 
+  constructor, simp [volume, α.volume], rw measure.of_measurable_apply,
+  { simp, erw (lebesgue_outer_Icc (-1 : ℝ) (1 : ℝ)), simp, },
+  { simp, }
+end 
+
 end domain

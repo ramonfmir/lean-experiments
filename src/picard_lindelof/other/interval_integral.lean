@@ -39,13 +39,10 @@ lemma temp.norm_integral_le_of_norm_le_const {a b : α} {C : ℝ} {f : α → E}
   ∥∫ x in a..b, f x∥ ≤ C * abs (b.val - a.val) :=
 temp.norm_integral_le_of_norm_le_const_ae (filter.eventually_of_forall h)
 
-lemma temp.integral_mono_ae {f g : α → E} (a b : α)
-(hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ᵐ[volume] g)
-: ∫ t in a..b, f t ≤ ∫ t in a..b, g t := sorry
+-- lemma temp.integral_mono_ae {f g : α → E} (a b : α)
+-- (hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ᵐ[volume] g)
+-- : ∫ t in a..b, f t ≤ ∫ t in a..b, g t := sorry
 
-lemma temp.integral_mono {f g : α → E} (a b : α)
-(hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ g)
-: ∫ t in a..b, f t ≤ ∫ t in a..b, g t := 
-begin 
-    sorry,
-end
+-- lemma temp.integral_mono {f g : α → E} (a b : α)
+-- (hf : interval_integrable f volume a b) (hg : interval_integrable g volume a b) (h : f ≤ g)
+-- : ∫ t in a..b, f t ≤ ∫ t in a..b, g t := sorry
