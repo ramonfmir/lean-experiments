@@ -24,6 +24,8 @@ structure initial_value_problem (v : α → E → E) :=
 (hlipschitz : ∀ s, lipschitz_with K (v s))
 (hbdd : ∀ y : α →ᵇ E, ∃ C, 0 < C ∧ ∀ t, ∥v t (y t)∥ ≤ C)
 (hintegrable : ∀ y : α →ᵇ E, ∀ t, interval_integrable (λ s, v s (y s)) volume 0 t)
+-- TODO: Only keep the last one.
+(hintegrable' : ∀ y : α →ᵇ E, integrable (λ s, v s (y s)))
 
 notation `IVP(` v `)` := initial_value_problem v
 

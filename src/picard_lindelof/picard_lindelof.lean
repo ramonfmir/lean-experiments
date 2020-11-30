@@ -18,12 +18,32 @@ local infix ` →ᵇ `:25 := bounded_continuous_function
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
-
-
 lemma dist_v_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
 : integrable (λ t, dist (v t (x t)) (v t (y t))) :=
 begin 
-  sorry
+  split,
+  { exact measurable.dist (I.hintegrable' x).measurable (I.hintegrable' y).measurable, },
+  { unfold has_finite_integral,  
+    simp only [dist_eq_norm, nnnorm_norm, ←nndist_eq_nnnorm, ←edist_nndist],
+    simp only [edist_dist, dist_eq_norm],
+    rcases (I.hbdd x) with ⟨Cx, hposCx, hboundCx⟩,
+    rcases (I.hbdd y) with ⟨Cy, hposCy, hboundCy⟩,
+    have h : ∀ a, ∥v a (x a) - v a (y a)∥ ≤ Cy + Cx,
+    { intros a,
+      have hd := norm_sub_le (v a (x a)) (v a (y a)),
+      have hboundCxa := hboundCx a,
+      have hboundCya := hboundCy a,
+      linarith, },
+    replace h := λ a, ennreal.of_real_le_of_real (h a),
+    have hle1 : (∫⁻ (a : α), (ennreal.of_real ∥(v a (x a)) - (v a (y a))∥)) 
+      ≤ (∫⁻ (a : α), (ennreal.of_real (Cy + Cx))),
+    { apply lintegral_mono, exact h, },
+    have hle2 : (∫⁻ (a : α), (ennreal.of_real (Cy + Cx))) < ⊤,
+    { rw lintegral_const, apply ennreal.mul_lt_top,
+      { exact ennreal.of_real_lt_top, },
+      { have hfm : finite_measure (volume : measure α) := by apply_instance,
+        refine hfm.measure_univ_lt_top, }, },
+    exact lt_of_le_of_lt hle1 hle2, },
 end 
 
 lemma dist_pointwise_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
@@ -67,8 +87,7 @@ begin
             { have hd := K_dist_pointwise_integrable v I x y,
               show integrable_on (λ t, I.K.1 * dist (x t) (y t)) _,
               exact integrable_on.mono_set (integrable_on_univ.2 hd) (λ s hs, trivial), },
-            { --have hi := integrable_const (I.K.1 * dist x y),
-              show integrable_on (λ t, I.K.1 * dist x y) (Ioc (min 0 t) (max 0 t)) volume,
+            { show integrable_on (λ t, I.K.1 * dist x y) (Ioc (min 0 t) (max 0 t)) volume,
                exact integrable_on.mono_set 
                 (integrable_on_univ.2 (integrable_const (I.K.1 * dist x y)))
                 (λ s hs, trivial), },
@@ -135,7 +154,9 @@ begin
     apply cInf_le, 
     { use 0, intros b hb, exact hb.1, },
     { exact ⟨hnnC', hC'⟩, }, },
-  let I' : IVP(v) := ⟨⟨K, hnnK⟩, I_hK, I_hlipschitz, I_hbdd, I_hintegrable⟩,
+  -- TODO: This is not very nice and will need to change when we keep only one
+  -- integrability condition.
+  let I' : IVP(v) := ⟨⟨K, hnnK⟩, I_hK, I_hlipschitz, I_hbdd, I_hintegrable, I_hintegrable'⟩,
   have hPsle := P.lipschitz_at x₀ v I' x y s,
   have hKdxyle : K * dist x y ≤ K * C' := mul_le_mul (le_refl _) hdxyle dist_nonneg hnnK,
   exact le_trans hPsle hKdxyle,
