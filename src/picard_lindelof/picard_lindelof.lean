@@ -1,3 +1,5 @@
+import topology.metric_space.contracting
+
 import picard_lindelof.definitions
 import picard_lindelof.other.interval_integral
 import picard_lindelof.other.mul_Inf
@@ -49,14 +51,27 @@ end
 lemma dist_pointwise_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
 : integrable (λ t, dist (x t) (y t)) :=
 begin 
-  sorry
+  split,
+  { exact measurable.dist x.2.1.measurable y.2.1.measurable, },
+  { unfold has_finite_integral,
+    simp only [dist_eq_norm, nnnorm_norm, ←nndist_eq_nnnorm, ←edist_nndist],
+    simp only [edist_dist],
+    rcases (@bounded_continuous_function.dist_set_exists _ _ _ _ x y) with ⟨C, hposC, hboundC⟩,
+    replace hboundC := λ a, ennreal.of_real_le_of_real (hboundC a),
+    have hle1 : (∫⁻ (a : α), (ennreal.of_real (dist (x a) (y a)))) 
+      ≤ (∫⁻ (a : α), (ennreal.of_real C)),
+    { apply lintegral_mono, exact hboundC, },
+    have hle2 : (∫⁻ (a : α), (ennreal.of_real C)) < ⊤,
+    { rw lintegral_const, apply ennreal.mul_lt_top,
+      { exact ennreal.of_real_lt_top, },
+      { have hfm : finite_measure (volume : measure α) := by apply_instance,
+        refine hfm.measure_univ_lt_top, }, },
+    exact lt_of_le_of_lt hle1 hle2, }
 end 
 
 lemma K_dist_pointwise_integrable (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E)
 : integrable (λ t, I.K.1 * dist (x t) (y t)) :=
 integrable.const_mul (dist_pointwise_integrable v I x y) I.K.1
-
---integrable (λ (a : α), ↑(I.K) * dist (⇑x a) (⇑y a)) (volume.restrict (Ioc (min 0 t) (max 0 t)))
 
 lemma P.lipschitz_at (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) (t : α)
 : dist (P x₀ v I x t) (P x₀ v I y t) ≤ I.K * dist x y :=
@@ -162,23 +177,22 @@ begin
   exact le_trans hPsle hKdxyle,
 end
 
---lemma P.edist_lt_top : Π (x : A →ᵇ B), edist x (P x) < ⊥ := sorry
+def P.fixed_point (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) 
+: α →ᵇ E := 
+contracting_with.fixed_point (P x₀ v I) ⟨I.hK, P.lipschitz x₀ v I⟩ 
 
--- def P.efixed_point_of_lipschitz (hf : ∀ s, lipschitz_with K (f s)) : ℝ →ᵇ B := 
--- contracting_with.efixed_point P ⟨hK, P.lipschitz_of_lipschitz hf⟩ sorry sorry
+-- integral_has_deriv_within_at_right
 
---#check contracting_with.efixed_point P
+#check has_deriv_within_at
 
 /-- There exists only one solution of an ODE \(\dot x=v(t, x)\) with
 a given initial value provided that RHS is Lipschitz continuous in `x`. -/
-theorem ODE_solution_unique' {v : ℝ → E → E}
-  {K : nnreal} (hv : ∀ t, lipschitz_with K (v t))
-  {f g : ℝ → E} {a b : ℝ}
-  (hf : continuous_on f (Icc a b))
-  (hf' : ∀ t ∈ Ico a b, has_deriv_within_at f (v t (f t)) (Ioi t) t) -- integral_has_deriv_within_at_right
-  (hg : continuous_on g (Icc a b))
-  (hg' : ∀ t ∈ Ico a b, has_deriv_within_at g (v t (g t)) (Ioi t) t)
-  (ha : f a = g a) :
+theorem ODE_solution_unique' 
+  {x₀ : E} {v : α → E → E}
+  {f g : α →ᵇ E}
+  (hf' : ∀ t, has_deriv_within_at f (v t (f t)) (Ioi t) t)
+  (hg' : ∀ t, has_deriv_within_at g (v t (g t)) (Ioi t) t)
+  (h0 : f 0 = x₀) :
   ∀ t ∈ Icc a b, f t = g t := 
 begin
     sorry,
