@@ -19,6 +19,7 @@ variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [lin
                       [normed_space ℝ E] [complete_space E] [second_countable_topology E]
 
 -- Our 'nice' initial value problem. Quite strong, doesn't depend on x.
+-- TODO: This shouldn't be called IVP.
 structure initial_value_problem (v : α → E → E) :=
 (K : nnreal) (hK : K < 1) 
 (hlipschitz : ∀ s, lipschitz_with K (v s))

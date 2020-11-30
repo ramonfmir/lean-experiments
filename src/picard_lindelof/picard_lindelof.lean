@@ -177,25 +177,38 @@ begin
   exact le_trans hPsle hKdxyle,
 end
 
-def P.fixed_point (x₀ : E) (v : α → E → E) (I : IVP(v)) (x y : α →ᵇ E) 
-: α →ᵇ E := 
+def P.fixed_point (x₀ : E) (v : α → E → E) (I : IVP(v)) : α →ᵇ E := 
 contracting_with.fixed_point (P x₀ v I) ⟨I.hK, P.lipschitz x₀ v I⟩ 
 
--- integral_has_deriv_within_at_right
+--------------- End ---------------
 
-#check has_deriv_within_at
+-- TODO: This is false. Maybe define α = [-2,2].
+instance inst1 : nondiscrete_normed_field α := sorry
 
-/-- There exists only one solution of an ODE \(\dot x=v(t, x)\) with
-a given initial value provided that RHS is Lipschitz continuous in `x`. -/
-theorem ODE_solution_unique' 
-  {x₀ : E} {v : α → E → E}
-  {f g : α →ᵇ E}
-  (hf' : ∀ t, has_deriv_within_at f (v t (f t)) (Ioi t) t)
-  (hg' : ∀ t, has_deriv_within_at g (v t (g t)) (Ioi t) t)
-  (h0 : f 0 = x₀) :
-  ∀ t ∈ Icc a b, f t = g t := 
+-- TODO: This is odd but should be provable. 
+instance inst2 : normed_space α E := sorry
+
+lemma fixed_point_of_deriv (x₀ : E) (v : α → E → E) (I : IVP(v)) (f : α →ᵇ E)
+(hderiv : ∀ t, has_deriv_within_at f (v t (f t)) (Ioi t) t) (h0 : f 0 = x₀)
+: function.is_fixed_pt (P x₀ v I) f :=
+begin 
+  unfold function.is_fixed_pt, ext t, simp, 
+  --have := integral_has_deriv_at_left (I.hintegrable f t),
+  -- Apparently, we can't prove this because FTC-2 hasn't been proved!
+  sorry,
+end
+
+-- Similar statement to the version using Gronwall's inequality.
+theorem ODE_solution_unique
+{x₀ : E} {v : α → E → E} (I : IVP(v)) {f g : α →ᵇ E}
+(hf' : ∀ t, has_deriv_within_at f (v t (f t)) (Ioi t) t)
+(hg' : ∀ t, has_deriv_within_at g (v t (g t)) (Ioi t) t)
+(hf0 : f 0 = x₀) (hg0 : g 0 = x₀) 
+: f = g := 
 begin
-    sorry,
+    have hfpf := fixed_point_of_deriv x₀ v I f hf' hf0,
+    have hfpg := fixed_point_of_deriv x₀ v I g hg' hg0,
+    exact contracting_with.fixed_point_unique' ⟨I.hK, P.lipschitz x₀ v I⟩ hfpf hfpg,
 end
 
 end picard_lindelof
