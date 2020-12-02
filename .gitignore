@@ -32,3 +32,6 @@ Temporary Items
 
 # Binaries
 *.olean
+
+# Dependencies
+_target/*
