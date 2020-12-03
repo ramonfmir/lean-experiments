@@ -193,6 +193,7 @@ lemma fixed_point_of_deriv (x₀ : E) (v : α → E → E) (I : IVP(v)) (f : α 
 : function.is_fixed_pt (P x₀ v I) f :=
 begin 
   unfold function.is_fixed_pt, ext t, simp, 
+  rw [add_comm, add_eq_of_eq_sub], erw ←h0,
   --have := integral_has_deriv_at_left (I.hintegrable f t),
   -- Apparently, we can't prove this because FTC-2 hasn't been proved!
   sorry,
