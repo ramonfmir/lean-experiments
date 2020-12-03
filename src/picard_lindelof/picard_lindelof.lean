@@ -189,7 +189,7 @@ instance inst1 : nondiscrete_normed_field α := sorry
 instance inst2 : normed_space α E := sorry
 
 lemma fixed_point_of_deriv (x₀ : E) (v : α → E → E) (I : IVP(v)) (f : α →ᵇ E)
-(hderiv : ∀ t, has_deriv_within_at f (v t (f t)) (Ico 0 t) t) (h0 : f 0 = x₀)
+(hderiv : ∀ t, has_deriv_within_at f (v t (f t)) (Icc 0 t) t) (h0 : f 0 = x₀)
 : function.is_fixed_pt (P x₀ v I) f :=
 begin 
   unfold function.is_fixed_pt, ext t, simp, 
@@ -202,8 +202,8 @@ end
 -- Similar statement to the version using Gronwall's inequality.
 theorem ODE_solution_unique
 {x₀ : E} {v : α → E → E} (I : IVP(v)) {f g : α →ᵇ E}
-(hf' : ∀ t, has_deriv_within_at f (v t (f t)) (Ico 0 t) t)
-(hg' : ∀ t, has_deriv_within_at g (v t (g t)) (Ico 0 t) t)
+(hf' : ∀ t, has_deriv_within_at f (v t (f t)) (Icc 0 t) t)
+(hg' : ∀ t, has_deriv_within_at g (v t (g t)) (Icc 0 t) t)
 (hf0 : f 0 = x₀) (hg0 : g 0 = x₀) 
 : f = g := 
 begin
