@@ -99,13 +99,18 @@ lemma euler_step_consistent
   (K : nnreal) (hltz : ∀ s, lipschitz_with K (f s))
   : dist (f (t + h) (x (t + h))) (euler_step f x h t) ≤ C * h^2 / 2 :=
 begin
-  sorry, 
+  have evox : ftaylor_series ℝ x (t + h) 2 = 0,
+  { unfold ftaylor_series, ext m,
+    rw iterated_fderiv_succ_apply_right,
+    rw iterated_fderiv_succ_apply_right,
+    rw iterated_fderiv_zero_apply, simp,
+
+    sorry, },
+  sorry,
 end 
 
 noncomputable def euler.recursive (f : ℝ → E → E) (x : ℝ → E) (h : ℝ) (t : ℝ) : ℕ → E
 | 0     := x t
 | (n+1) := (euler.recursive n) + h • (f (t + h) (euler.recursive n))
-
-
 
 end euler_method
