@@ -4,6 +4,8 @@ import data.buffer.parser
 import tactic.find
 import analysis.special_functions.pow
 
+-- https://isabelle.in.tum.de/website-Isabelle2013/dist/library/HOL/HOL-Library/Float.html
+
 import taylor_models.zpow
 
 open parser zpow
