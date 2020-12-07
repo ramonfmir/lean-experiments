@@ -87,6 +87,11 @@ def euler_step (f : ℝ → E → E) (x : ℝ →ᵇ E) (h : ℝ) (t : ℝ) : E 
 --   assumes t': "t' ∈ I"
 --   shows "consistent solution t' T B' 1 (euler_increment f)"
 
+-- lemma euler_consistent_solution':
+--   assumes "t1' ∈ {t0 .. t1}"
+--   shows "solution (t0 + (t1' - t0)) - discrete_evolution (euler_increment f) (t0 + (t1' - t0)) t0 (solution t0) ∈
+--     op *⇩R ((t1' - t0)⇧2 / 2) ` {inf_of_appr D..sup_of_appr D}"
+
 -- MISSING: Taylor's formula.
 
 lemma euler_step_consistent 
@@ -113,5 +118,41 @@ end
 noncomputable def euler.recursive (f : ℝ → E → E) (x : ℝ → E) (h : ℝ) (t : ℝ) : ℕ → E
 | 0     := x t
 | (n+1) := (euler.recursive n) + h • (f (t + h) (euler.recursive n))
+
+-- Certification of solution.
+
+-- File: EulerAffine.thy
+
+-- lemma P_appr:
+--   assumes x0: "x0 ∈ set_of_appr X0"
+--   assumes x: "⋀t. t ∈ {t0..t1} ⟹ x t ∈ set_of_appr X"
+--   assumes cont: "continuous_on {t0..t1} x"
+--   assumes h': "0 ≤ t1 - t0" "t1 - t0 ≤ h"
+--   assumes P_res: "P_appr optns X0 h X = Some R"
+--   shows "x0 + integral {t0..t1} (λt. ode (x t)) ∈ set_of_appr R"
+
+-- interpretation unique_on_closed_cont_diff "step_ivp t0 x0 t1 CX" t1 "λ(t, x) (dt, dx). ode_d x dx"
+
+-- THEOREM 7. 
+-- lemma unique_on_euler_step:
+--   assumes "t0 + h = t1"
+--   shows
+--     "unique_solution (euler_ivp t0 x0 t1)" (is ?th1) and
+--     "⋀t. t ∈ {t0 .. t1} ⟹ ivp.solution (euler_ivp t0 x0 t1) t ∈ set_of_appr RES_ivl" (is "⋀t. ?ass2 t ⟹ ?th2 t") and
+--     "ivp.solution (euler_ivp t0 x0 t1) t1 ∈ set_of_appr RES" (is ?th3)
+
+-- THEOREM 8?
+-- lemma error_overapproximation:
+--   shows  "solution (t0 + h) ∈ set_of_appr RES"
+
+-- THEOREM 9.
+-- lemma euler_series_enclosure:
+--   assumes pos_prestep: "0 < stepsize optns"
+--   assumes x0: "x0 ∈ set_of_appr X0"
+--   assumes euler_series_returns: "euler_series optns t0 X0 i = Some (j, t2, X2, ress)"
+--   shows
+--     "unique_solution (euler_ivp t0 x0 t2)"
+--     "enclosure (ivp.solution (euler_ivp t0 x0 t2)) t0 t2 (map set_res_of_appr_res ress)"
+--     "ivp.solution (euler_ivp t0 x0 t2) t2 ∈ set_of_appr X2"
 
 end euler_method
