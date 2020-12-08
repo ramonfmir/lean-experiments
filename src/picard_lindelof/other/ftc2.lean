@@ -81,7 +81,10 @@ begin
   exact ⟨hx.1, le_refl x⟩,
 end 
 
-#check metric.continuous_on_iff
+#check compact_Icc 
+#check nonempty_Icc
+#check is_compact.exists_forall_ge
+#check continuous.norm
 
 theorem ftc2
   (contf : continuous_on f (Icc a b)) 
@@ -91,6 +94,14 @@ theorem ftc2
   ∀ x ∈ Ico a b, ∫ y in a..x, f' y = f x - f a :=
 begin
     intros x hx, 
+    by_cases hab : b < a, 
+    { have hc := lt_of_le_of_lt hx.1 (lt_trans hx.2 hab), 
+      exfalso, exact lt_irrefl _ hc, },
+    replace hab := le_of_not_lt hab,
+    have hneab := nonempty_Icc.2 hab,
+    have hcmpab := @compact_Icc a b,
+    have hctsnorm : continuous_on (λ x, ∥f' x∥) (Icc a b) := sorry,
+    have hfbdd := is_compact.exists_forall_ge hcmpab hneab hctsnorm,
     apply eq_sub_of_add_eq, symmetry,
     have derivint : ∀ z ∈ Ico a b, 
       has_deriv_within_at (λ u, (∫ y in a..u, f' y) + f a) (f' z) (Ioi z) z,
@@ -98,8 +109,26 @@ begin
       exact (deriv_integral_right contf' derivf intgf' y hy), },
     refine (eq_of_deriv_eq contf _ derivf derivint _) x hx,
     { refine continuous_on.add _ continuous_on_const,
-      rw metric.continuous_on_iff, intros c hc ε hε, use [ε, hε], 
-      intros d hd hdist, rw [dist_eq_norm], sorry,
+      rw metric.continuous_on_iff, 
+      rcases hfbdd with ⟨z, hzab, hzbd⟩,
+      by_cases hfz : ∥f' z∥ = 0,
+      { -- If it is zero, the whole function is zero and everything follows.
+        sorry, }, 
+      intros c hc ε hε, 
+      let δ := ε / ∥f' z∥,
+      have hδ : 0 < δ,
+      { -- Follows from hfz and norm_nonneg.
+        sorry, },
+      use [δ, hδ], 
+      intros d hd hdist, 
+      rw [dist_eq_norm], 
+      -- ∥(∫ (y : ℝ) in a..d, f' y) - ∫ (y : ℝ) in a..c, f' y∥ < ε
+      -- ∥∫ (y : ℝ) in c..d, f' y∥ < ε
+      -- ∥∫ (y : ℝ) in c..d, f' y∥ ≤ dist c d * ∥f' z∥
+      --                          < (ε / ∥f' z∥) * ∥f' z∥
+      --                          < ε
+      
+      sorry,
       -- intros z hz, 
       -- by_cases hab : b ≤ a, { rw Ico_eq_empty hab at hx, cases hx, },
       -- replace hab := lt_of_not_ge hab,
