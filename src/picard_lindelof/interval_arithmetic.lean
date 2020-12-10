@@ -5,6 +5,7 @@ Authors: Zhouhang Zhou
 -/
 import order.bounds
 import data.set.intervals.image_preimage
+import tactic.linarith
 
 /-!
 # Intervals without endpoints ordering
@@ -197,21 +198,18 @@ end linear_ordered_field
 
 section intervals 
 
-variables (α : Type u) [linear_order α]
+variables (α : Type u) [linear_ordered_add_comm_group α] 
 
 @[reducible] def intervals := { I | ∃ (a b : α), I = [a, b] }
 
 section ordered_add_comm_group
 
-open_locale classical
-
-variable [linear_ordered_add_comm_group α] 
-
-lemma add_intervals (a b c d : α) : [a, b] + [c, d] = [a + b, c + d] :=
+lemma add_intervals (a b c d : α) : Icc a b + Icc c d = Icc (a + c) (b + d) :=
 begin 
   ext x, split, 
-  { rintros ⟨y, z, ⟨hya, hyb⟩, ⟨hza, hzb⟩, hx⟩, sorry, },
-  { sorry, }, 
+  { rintros ⟨y, z, ⟨hay, hyb⟩, ⟨hcz, hzd⟩, hx⟩, 
+    rw ←hx, exact ⟨add_le_add hay hcz, add_le_add hyb hzd⟩, },
+  { rintros ⟨hacx, hxbd⟩, sorry, }, 
 end 
 
 instance : has_add (intervals α) := {
