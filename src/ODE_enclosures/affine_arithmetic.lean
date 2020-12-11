@@ -6,50 +6,77 @@ import measure_theory.borel_space
 
 noncomputable theory
 
-open set topological_space finset
+open set topological_space finsupp
 
-open_locale big_operators interval
+open_locale big_operators classical
 
 section affine_arithmetic
 
--- type_synonym 'a aform = "'a × 'a pdevs"
+structure affine_form (E : Type*) [has_zero E] := 
+(x₀ : E) (x : ℕ →₀ E)
 
-structure affine_form (E : Type*) (n : ℕ) := 
-(x₀ : E)
-(x : fin n → E)
+@[reducible] def error_interval : set ℝ := Icc (-1) 1
 
-def error_interval : set ℝ := [-1, 1]
-
-def noise (n : ℕ) : Type := fin n → error_interval
-
-def noise.insert_left (n : ℕ) (ε : noise n) (E : error_interval) : noise (n + 1) :=
-@fin.cases n (λ_, error_interval) E ε
+def noise := ℕ → error_interval
 
 namespace affine_form
 
 variable (n : ℕ)
 
 variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
-                      [normed_space ℝ E] [complete_space E] [second_countable_topology E]
+                      [normed_space ℝ E] [complete_space E] [second_countable_topology E] --[field E]
 
--- definition aform_val :: "(nat ⇒ real) ⇒ 'a::real_normed_vector aform ⇒ 'a"
---   where "aform_val e X = fst X + pdevs_val e (snd X)"
+def eval (ε : noise) (A : affine_form E) : E :=
+A.x₀ + ∑ i in A.x.support, (ε i).val • (A.x i)
 
-def eval (ε : noise n) (A : affine_form E n) : E :=
-A.x₀ + ∑ i, (ε i).val • (A.x i)
+def set (A : affine_form E) : set E :=
+set.image (λ ε, eval ε A) ⊤
 
--- definition Affine ::
---     "'a::real_normed_vector aform ⇒ 'a set"
---   where "Affine X = valuate (λe. aform_val e X)"
+section operations
 
-def set (A : affine_form E n) : set E :=
-set.image (λ ε, eval n ε A) ⊤
+def add (A₁ A₂ : affine_form E) : affine_form E :=
+⟨A₁.x₀ + A₂.x₀, A₁.x + A₂.x⟩
 
--- definition add_aform::"'a::real_vector aform ⇒ 'a aform ⇒ 'a aform"
---   where "add_aform x y = (fst x + fst y, add_pdevs (snd x) (snd y))"
+instance : has_add (affine_form E) := ⟨add⟩ 
 
-def add (A₁ A₂ : affine_form E n) : affine_form E n :=
-⟨A₁.x₀ + A₁.x₀, λ i, (A₁.x i) + (A₂.x i)⟩
+@[simp] lemma add_centre (A₁ A₂ : affine_form E) 
+: (A₁ + A₂).x₀ = A₁.x₀ + A₂.x₀ := rfl
+
+@[simp] lemma add_partials (A₁ A₂ : affine_form E) 
+: (A₁ + A₂).x = A₁.x + A₂.x := rfl
+
+lemma eval_add_eq_support_union (ε : noise) (A₁ A₂ : affine_form E) 
+: eval ε (A₁ + A₂) = 
+  (A₁.x₀ + A₂.x₀) 
+  + (∑ i in A₁.x.support ∪ A₂.x.support, (ε i).val • (A₁.x i) 
+  + ∑ i in A₁.x.support ∪ A₂.x.support, (ε i).val • (A₂.x i)) :=
+begin  
+  simp [eval, add_centre, add_partials, ←finset.sum_add_distrib],
+  apply finset.sum_subset,
+  { convert @finsupp.support_add ℕ E _ (A₁.x) (A₂.x), }, 
+  { intros x hx hxns,
+    simp [←smul_add, ←add_apply, not_mem_support_iff.1 hxns], }, 
+end
+
+@[simp] lemma eval_add_eq (ε : noise) (A₁ A₂ : affine_form E) 
+: eval ε (A₁ + A₂) = 
+  (A₁.x₀ + A₂.x₀) 
+  + (∑ i in A₁.x.support, (ε i).val • (A₁.x i) 
+  + ∑ i in A₂.x.support, (ε i).val • (A₂.x i)) :=
+begin 
+  simp [eval_add_eq_support_union], apply congr_arg2 (+),
+  -- Lemma here about sums over unions?
+  { symmetry, apply finset.sum_subset (finset.subset_union_left _ _),
+    intros x hx hxns, simp [not_mem_support_iff.1 hxns], },
+  { symmetry, apply finset.sum_subset (finset.subset_union_right _ _),
+    intros x hx hxns, simp [not_mem_support_iff.1 hxns], },
+end
+
+@[simp] lemma eval_add_eq_add_eval (ε : noise) (A₁ A₂ : affine_form E) 
+: eval ε (A₁ + A₂) = (eval ε A₁) + (eval ε A₂) :=
+by { simp only [eval_add_eq], dsimp [eval], abel, }
+
+end operations 
 
 -- definition add_aform'::"nat ⇒ nat ⇒ 'a::executable_euclidean_space aform ⇒ 'a aform ⇒ 'a aform"
 --   where "add_aform' p n x y =
@@ -61,7 +88,8 @@ def add (A₁ A₂ : affine_form E n) : affine_form E n :=
 -- TODO 1: Maybe create an instance for executable euclidean space.
 -- TODO 2: Finish dyadic rationals. Prove a bunch of instances. 
 -- def add' (A₁ A₂ : affine_form 𝔽 n) : affine_form 𝔽 (n + 1) := ... 
-def add' (A₁ A₂ : affine_form E n) : affine_form E (n + 1) := sorry
+
+def add' (A₁ A₂ : affine_form E) : affine_form E := sorry
 
 -- THEOREM 5.
 -- lemma add_aform'E:
