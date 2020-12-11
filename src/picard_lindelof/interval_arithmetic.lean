@@ -200,9 +200,12 @@ section intervals
 
 variables (α : Type u) [linear_ordered_field α] 
 
-@[reducible] def intervals := { I | ∃ (a b : α), I = [a, b] }
+@[reducible] def intervals := { I // ∃ (a b : α), a < b ∧ I = [a, b] }
+-- Should be ≤.
 
 section ordered_add_comm_group
+
+variable {α}
 
 lemma mem_Icc_iff_exists_affine_form (a b : α) (h : a < b)
 : ∀ x, x ∈ Icc a b ↔ 
@@ -232,22 +235,38 @@ begin
   ext x, split, 
   { rintros ⟨y, z, ⟨hay, hyb⟩, ⟨hcz, hzd⟩, hx⟩, 
     rw ←hx, exact ⟨add_le_add hay hcz, add_le_add hyb hzd⟩, },
-  { intros hx, replace hx := (mem_Icc_iff_exists_affine_form _ _ _ h3 x).1 hx,
+  { intros hx, replace hx := (mem_Icc_iff_exists_affine_form _ _ h3 x).1 hx,
     rcases hx with ⟨γ, hγ, hx⟩,
     use [((a + b) / 2) + γ * ((b - a) / 2)],
     use [((c + d) / 2) + γ * ((d - c) / 2)],
     refine ⟨_, _, _⟩,
-    { rw mem_Icc_iff_exists_affine_form _ _ _ h1, use [γ, hγ], },
-    { rw mem_Icc_iff_exists_affine_form _ _ _ h2, use [γ, hγ], },
+    { rw mem_Icc_iff_exists_affine_form _ _ h1, use [γ, hγ], },
+    { rw mem_Icc_iff_exists_affine_form _ _ h2, use [γ, hγ], },
     { rw hx, ring, }, }, 
 end 
 
+lemma add_intervals' (a b c d : α) (h1 : a < b) (h2 : c < d) 
+: [a, b] + [c, d] = [a + c, b + d] :=
+begin 
+  rw [interval_of_lt h1, interval_of_lt h2, interval_of_lt (add_lt_add h1 h2)],
+  exact add_intervals a b c d h1 h2,
+end 
+
+set_option trace.eqn_compiler.elim_match true
+
 instance : has_add (intervals α) := {
-  add := λ I J, ⟨I.1 + J.1, sorry⟩,
+  add := λ I J, ⟨I.1 + J.1, 
+    begin 
+      rcases I.2 with ⟨a, b, hab, hI⟩, 
+      rcases J.2 with ⟨c, d, hcd, hJ⟩, 
+      have hacbd := add_lt_add hab hcd,
+      use [a + c, b + d, hacbd], rw [hI, hJ],
+      exact add_intervals' a b c d hab hcd,
+    end⟩
 }
 
 instance : linear_ordered_add_comm_group (intervals α) := {
-  add := sorry, 
+  add := has_add.add, 
   add_assoc := sorry, 
   zero := sorry,
   zero_add := sorry, 
