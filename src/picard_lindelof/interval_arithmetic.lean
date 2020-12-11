@@ -198,18 +198,34 @@ end linear_ordered_field
 
 section intervals 
 
-variables (α : Type u) [linear_ordered_add_comm_group α] 
+variables (α : Type u) [linear_ordered_field α] 
 
 @[reducible] def intervals := { I | ∃ (a b : α), I = [a, b] }
 
 section ordered_add_comm_group
 
-lemma add_intervals (a b c d : α) : Icc a b + Icc c d = Icc (a + c) (b + d) :=
+lemma mem_Icc_iff (a b : α) (h : a < b)
+: ∀ x, x ∈ Icc a b ↔ ∃ γ ∈ (Icc 0 1 : set α), x = a + γ * b :=
+begin 
+  intros x, split, 
+  { rintros ⟨hax, hxb⟩, by_cases hb : 0 < b,
+    { use [(x - a) / b], refine ⟨⟨_, _⟩, _⟩, 
+      { simpa [le_div_iff hb], },
+      { sorry, },
+      { rw [mul_comm, ←mul_div_assoc, mul_div_cancel_left _ (ne_of_gt hb)],
+        ring, }, },
+    { sorry, }, },
+  { sorry, },
+end
+
+lemma add_intervals (a b c d : α) (h1 : a < b) (h2 : c < d) 
+: Icc a b + Icc c d = Icc (a + c) (b + d) :=
 begin 
   ext x, split, 
   { rintros ⟨y, z, ⟨hay, hyb⟩, ⟨hcz, hzd⟩, hx⟩, 
     rw ←hx, exact ⟨add_le_add hay hcz, add_le_add hyb hzd⟩, },
-  { rintros ⟨hacx, hxbd⟩, sorry, }, 
+  { rintros ⟨hacx, hxbd⟩, 
+    sorry, }, 
 end 
 
 instance : has_add (intervals α) := {
