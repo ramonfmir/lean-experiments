@@ -204,28 +204,42 @@ variables (α : Type u) [linear_ordered_field α]
 
 section ordered_add_comm_group
 
-lemma mem_Icc_iff (a b : α) (h : a < b)
-: ∀ x, x ∈ Icc a b ↔ ∃ γ ∈ (Icc 0 1 : set α), x = a + γ * b :=
+lemma mem_Icc_iff_exists_affine_form (a b : α) (h : a < b)
+: ∀ x, x ∈ Icc a b ↔ 
+  ∃ γ ∈ (Icc (-1) 1 : set α), x = ((a + b) / 2) + γ * ((b - a) / 2) :=
 begin 
+  replace h := sub_pos.2 h,
+  have h2 : 0 < (b - a) / 2 := div_pos h (by linarith),
   intros x, split, 
-  { rintros ⟨hax, hxb⟩, by_cases hb : 0 < b,
-    { use [(x - a) / b], refine ⟨⟨_, _⟩, _⟩, 
-      { simpa [le_div_iff hb], },
-      { sorry, },
-      { rw [mul_comm, ←mul_div_assoc, mul_div_cancel_left _ (ne_of_gt hb)],
-        ring, }, },
-    { sorry, }, },
-  { sorry, },
+  { rintros ⟨hax, hxb⟩, 
+    use [(2*x - a - b) / (b - a)], refine ⟨⟨_, _⟩, _⟩, 
+      { simp [le_div_iff h], linarith, },
+      { simp [div_le_iff h], linarith, },
+      { simp [mul_comm, ←mul_div_assoc, mul_div_cancel_left _ (ne_of_gt h)], ring, }, },
+  { rintros ⟨γ, ⟨hγlb, hγub⟩, hx⟩, rw hx, split,
+    { apply le_add_of_sub_left_le, 
+      refine le_trans _ ((mul_le_mul_right h2).2 hγlb),
+      linarith, },
+    { apply add_le_of_le_sub_left,
+      refine le_trans ((mul_le_mul_right h2).2 hγub) _,
+      linarith, }, },
 end
 
 lemma add_intervals (a b c d : α) (h1 : a < b) (h2 : c < d) 
 : Icc a b + Icc c d = Icc (a + c) (b + d) :=
 begin 
+  have h3 : a + c < b + d := add_lt_add h1 h2,
   ext x, split, 
   { rintros ⟨y, z, ⟨hay, hyb⟩, ⟨hcz, hzd⟩, hx⟩, 
     rw ←hx, exact ⟨add_le_add hay hcz, add_le_add hyb hzd⟩, },
-  { rintros ⟨hacx, hxbd⟩, 
-    sorry, }, 
+  { intros hx, replace hx := (mem_Icc_iff_exists_affine_form _ _ _ h3 x).1 hx,
+    rcases hx with ⟨γ, hγ, hx⟩,
+    use [((a + b) / 2) + γ * ((b - a) / 2)],
+    use [((c + d) / 2) + γ * ((d - c) / 2)],
+    refine ⟨_, _, _⟩,
+    { rw mem_Icc_iff_exists_affine_form _ _ _ h1, use [γ, hγ], },
+    { rw mem_Icc_iff_exists_affine_form _ _ _ h2, use [γ, hγ], },
+    { rw hx, ring, }, }, 
 end 
 
 instance : has_add (intervals α) := {
