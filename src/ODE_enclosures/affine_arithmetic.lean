@@ -12,28 +12,37 @@ open_locale big_operators classical
 
 section affine_arithmetic
 
-structure affine_form (E : Type*) [has_zero E] := 
+structure affine_form (E : Type*) [normed_group E] [normed_space ℝ E] := 
 (x₀ : E) (x : ℕ →₀ E)
 
-@[reducible] def error_interval : set ℝ := Icc (-1) 1
-
-def noise := ℕ → error_interval
+structure affine_form_with_error extends affine_form ℝ :=
+(error : ℝ)
 
 namespace affine_form
 
+/-- In order to evaluate noise symbols, we will use a function of type `noise`. -/
+def error_interval : set ℝ := Icc (-1) 1
+
+def noise := ℕ → error_interval
+
 variable (n : ℕ)
 
-variables {E : Type*} [measurable_space E] [normed_group E] [borel_space E] [linear_order E]
-                      [normed_space ℝ E] [complete_space E] [second_countable_topology E] --[field E]
+variables {E : Type*} [normed_group E] [normed_space ℝ E]
 
+/--- Given valuation for noise symbols `ε` and affine form `A`, the value of `A` with `ε` is given
+by the formula ⟦A, ε⟧ := x₀ + ∑ εᵢ * xᵢ. -/
 def eval (ε : noise) (A : affine_form E) : E :=
 A.x₀ + ∑ i in A.x.support, (ε i).val • (A.x i)
 
+/-- The image over all possible noises gives a set, which is how we usually think of the affine 
+form `A`. It is computted as ⟦A⟧ := { ⟦A, ε⟧ | ε : ℕ → [-1, 1] }. -/
 def set (A : affine_form E) : set E :=
 set.image (λ ε, eval ε A) ⊤
 
 section operations
 
+/-- Addition of affine forms. The lemma `eval_add_eq_add_eval` shows that it is defined 
+correctly. -/
 def add (A₁ A₂ : affine_form E) : affine_form E :=
 ⟨A₁.x₀ + A₂.x₀, A₁.x + A₂.x⟩
 
@@ -45,26 +54,26 @@ instance : has_add (affine_form E) := ⟨add⟩
 @[simp] lemma add_partials (A₁ A₂ : affine_form E) 
 : (A₁ + A₂).x = A₁.x + A₂.x := rfl
 
-lemma eval_add_eq_support_union (ε : noise) (A₁ A₂ : affine_form E) 
+private lemma eval_add_eq_sum_union (ε : noise) (A₁ A₂ : affine_form E) 
 : eval ε (A₁ + A₂) = 
   (A₁.x₀ + A₂.x₀) 
-  + (∑ i in A₁.x.support ∪ A₂.x.support, (ε i).val • (A₁.x i) 
-  + ∑ i in A₁.x.support ∪ A₂.x.support, (ε i).val • (A₂.x i)) :=
+  + (∑ i in A₁.x.support ∪ A₂.x.support, ((ε i).val • (A₁.x i) + (ε i).val • (A₂.x i))) :=
 begin  
-  simp [eval, add_centre, add_partials, ←finset.sum_add_distrib],
+  simp [eval, add_centre, add_partials],
   apply finset.sum_subset,
   { convert @finsupp.support_add ℕ E _ (A₁.x) (A₂.x), }, 
   { intros x hx hxns,
     simp [←smul_add, ←add_apply, not_mem_support_iff.1 hxns], }, 
 end
 
-@[simp] lemma eval_add_eq (ε : noise) (A₁ A₂ : affine_form E) 
+private lemma eval_add_eq_def (ε : noise) (A₁ A₂ : affine_form E) 
 : eval ε (A₁ + A₂) = 
   (A₁.x₀ + A₂.x₀) 
   + (∑ i in A₁.x.support, (ε i).val • (A₁.x i) 
   + ∑ i in A₂.x.support, (ε i).val • (A₂.x i)) :=
 begin 
-  simp [eval_add_eq_support_union], apply congr_arg2 (+),
+  simp [eval_add_eq_sum_union ε A₁ A₂, finset.sum_add_distrib], 
+  apply congr_arg2 (+),
   -- Lemma here about sums over unions?
   { symmetry, apply finset.sum_subset (finset.subset_union_left _ _),
     intros x hx hxns, simp [not_mem_support_iff.1 hxns], },
@@ -74,7 +83,9 @@ end
 
 @[simp] lemma eval_add_eq_add_eval (ε : noise) (A₁ A₂ : affine_form E) 
 : eval ε (A₁ + A₂) = (eval ε A₁) + (eval ε A₂) :=
-by { simp only [eval_add_eq], dsimp [eval], abel, }
+by { simp only [eval_add_eq_def], dsimp [eval], abel, }
+
+/-- Addition of affine forms with error. -/
 
 end operations 
 
