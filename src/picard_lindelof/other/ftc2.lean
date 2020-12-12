@@ -11,8 +11,8 @@ open_locale classical topological_space filter
 variables {E : Type*} [measurable_space E] [normed_group E] 
                       [second_countable_topology E] [complete_space E] 
                       [normed_space ℝ E] [borel_space E]
-variables {f : ℝ → E} {a b : ℝ} 
-variables {f' g : ℝ → E}
+variables {f : ℝ → ℝ} {a b : ℝ} 
+variables {f' g : ℝ → ℝ}
 
 -- Two cts functions with the same derivative in an interval and same initial
 -- value coincide in the whole interval.
@@ -28,7 +28,7 @@ begin
   { intros z hz,
     convert has_deriv_within_at.sub (hfderiv z hz) (hgderiv z hz),
     rw sub_self, },
-  have hbound : ∀ z ∈ Ico a b, ∥(0 : E)∥ ≤ 0 
+  have hbound : ∀ z ∈ Ico a b, ∥(0 : ℝ)∥ ≤ 0 
     := λ _ _, by rw norm_le_zero_iff,
   intros y hy,
   have hnormle := norm_image_sub_le_of_norm_deriv_right_le_segment 
@@ -63,8 +63,6 @@ lemma integral_sub_at_right
   (∫ (y : ℝ) in a..d, f' y) - ∫ (y : ℝ) in a..c, f' y = ∫ (y : ℝ) in c..d, f' y :=
 by rw [integral_interval_sub_interval_comm' h1 h2
       (interval_integrable.refl (interval_integrable.measurable h1)), integral_same, sub_zero]
-
-#check continuous_within_at_iff_continuous_at_restrict
 
 -- Second part of the Fundamental Theorem of Calculus.
 theorem ftc2
@@ -105,7 +103,26 @@ begin
         { intros y hy, apply norm_le_zero_iff.1,
           specialize hzbd y hy, dsimp at hzbd, 
           rw hfz at hzbd, exact hzbd, },
-        sorry, }, 
+        have hrestrictint : restrict (λ x, ∫ y in a..x, f' y) (Icc a b) = λ x, 0,
+        { funext v, show ∫ y in a..v.val, f' y = 0,
+          have eventzero : f' =ᵐ[volume.restrict (Ioc a v.val)] 0,
+          { rw eventually_eq_iff_exists_mem, use [Ioc a v.val], split,
+            { simp, use ⊤, split,
+              { show volume ⊤ᶜ = 0, rw compl_top, simp, }, 
+              { use [Ioc a v.val], split,
+                { exact subset.refl _, },
+                { erw [univ_inter _], exact subset.refl _, }, }, },
+            { intros w hw,
+              rw [hzero w ⟨le_of_lt hw.1, le_trans hw.2 v.2.2⟩], refl, }, },
+          rw integral_eq_zero_iff_of_le_of_nonneg_ae v.2.1,
+          { exact eventzero, },
+          { apply @eventually_le.congr _ _ _ _ 0 0 0 f',
+            { exact eventually_le.refl _ _, },
+            { exact eventually_eq.refl _ _, },
+            { exact (eventually_eq.symm eventzero), }, },
+          { exact (intgf' v.1 v.2), }, },
+        rw continuous_on_iff_continuous_restrict,
+        erw hrestrictint, exact continuous_const, }, 
       replace hfz := lt_of_not_ge hfz,
       -- Prove from first principles...
       rw metric.continuous_on_iff, intros c hc ε hε, 
@@ -137,7 +154,7 @@ begin
             end
             -- abs is just dist.
       ... = ∥f' z∥ * dist d c 
-          : by rw [dist_eq_norm, real.norm_eq_abs, abs_sub d c]
+          : by rw [dist_eq_norm, real.norm_eq_abs (d - c), abs_sub d c]
             -- dist is less than δ by assumption.
       ... < ∥f' z∥ * δ 
           : mul_lt_mul_of_pos_left hdist hfz
