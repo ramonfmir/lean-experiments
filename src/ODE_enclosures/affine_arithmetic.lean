@@ -159,19 +159,6 @@ let z₀ := truncate_with_error p (A₁.x₀ + A₂.x₀),
 
 end operations 
 
--- definition add_aform'::"nat ⇒ nat ⇒ 'a::executable_euclidean_space aform ⇒ 'a aform ⇒ 'a aform"
---   where "add_aform' p n x y =
---     (let
---       z0 = trunc_bound_eucl p (fst x + fst y);
---       z = trunc_bound_pdevs p (add_pdevs (snd x) (snd y))
---       in (fst z0, pdev_upd (fst z) n (listsum' p [snd z0, snd z])))"
-
--- TODO 1: Maybe create an instance for executable euclidean space.
--- TODO 2: Finish dyadic rationals. Prove a bunch of instances. 
--- def add' (A₁ A₂ : affine_form 𝔽 n) : affine_form 𝔽 (n + 1) := ... 
-
--- def add' (A₁ A₂ : affine_form E) : affine_form E := sorry
-
 -- THEOREM 5.
 -- lemma add_aform'E:
 --   fixes X Y::"real aform"
