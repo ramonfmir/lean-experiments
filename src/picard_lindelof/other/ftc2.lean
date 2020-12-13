@@ -64,6 +64,11 @@ lemma integral_sub_at_right
 by rw [integral_interval_sub_interval_comm' h1 h2
       (interval_integrable.refl (interval_integrable.measurable h1)), integral_same, sub_zero]
 
+-- TODO: Move
+lemma eventually_le_of_eq {α β : Type*} [preorder β] (l : filter α) (f g : α → β) (h : f =ᶠ[l] g)
+: f ≤ᶠ[l] g := 
+eventually_le.congr (eventually_le.refl _ _) (eventually_eq.refl _ _) h
+
 -- Second part of the Fundamental Theorem of Calculus.
 theorem ftc2
   (contf : continuous_on f (Icc a b)) 
@@ -107,8 +112,8 @@ begin
         { funext v, show ∫ y in a..v.val, f' y = 0,
           have eventzero : f' =ᵐ[volume.restrict (Ioc a v.val)] 0,
           { rw eventually_eq_iff_exists_mem, use [Ioc a v.val], split,
-            { simp, use ⊤, split,
-              { show volume ⊤ᶜ = 0, rw compl_top, simp, }, 
+            { simp, use univ, split,
+              { show volume univᶜ = 0, rw compl_univ, simp, }, 
               { use [Ioc a v.val], split,
                 { exact subset.refl _, },
                 { erw [univ_inter _], exact subset.refl _, }, }, },
