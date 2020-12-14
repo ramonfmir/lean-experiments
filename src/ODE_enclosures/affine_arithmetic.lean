@@ -28,6 +28,11 @@ variable (n : ℕ)
 
 variables {E : Type*} [normed_group E] [normed_space ℝ E]
 
+/-- Constant affine form. -/
+def const (c : E) : affine_form E := ⟨c, 0⟩
+
+instance : inhabited (affine_form E) := ⟨const 0⟩
+
 /-- Degree of an affine form. -/
 def degree (A : affine_form E) : ℕ := A.x.support.card
 
@@ -62,6 +67,35 @@ instance : has_neg (affine_form E) := ⟨neg⟩
 @[simp] lemma eval_neg_eq_neg_eval (ε : noise) (A : affine_form E) 
 : eval ε (-A) = -(eval ε A) :=
 by { simp [eval, neg_centre, neg_partials, finsupp.support_neg, neg_add], }
+
+/-- Scaling of affine forms. -/
+def smul (k : ℝ) (A : affine_form E) : affine_form E :=
+⟨k • A.x₀, k • A.x⟩
+
+instance : has_scalar ℝ (affine_form E) := ⟨smul⟩ 
+
+@[simp] lemma smul_centre (k : ℝ) (A : affine_form E) 
+: (k • A).x₀ = k • A.x₀ := rfl
+
+@[simp] lemma smul_partials (k : ℝ) (A : affine_form E) 
+: (k • A).x = k • A.x := rfl
+
+-- TODO: Move (finsupp/basic).
+lemma support_smul_nonzero {α M} {R} 
+  [division_ring R] [add_comm_group M] [module R M] {b : R} (hb : b ≠ 0) {g : α →₀ M} 
+  : (b • g).support = g.support :=
+begin 
+  ext x, split,
+  { intros h, exact finsupp.support_smul h, },
+  { intros h, simp only [smul_apply', mem_support_iff, ne.def] at *,
+    intros hc, rw [smul_eq_zero] at hc, cases hc,
+    { exact hb hc, }, { exact h hc, }, },
+end 
+
+@[simp] lemma eval_smul_eq_smul_eval (ε : noise) (k : ℝ) (hk : k ≠ 0) (A : affine_form E) 
+: eval ε (k • A) = k • (eval ε A) :=
+by { simp [eval, smul_centre, smul_partials, support_smul_nonzero hk, 
+      smul_add, finset.smul_sum, smul_smul, mul_comm], }
 
 /-- Addition of affine forms. The lemma `eval_add_eq_add_eval` shows that it is defined 
 correctly. -/
