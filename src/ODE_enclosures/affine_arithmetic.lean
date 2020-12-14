@@ -28,6 +28,9 @@ variable (n : ℕ)
 
 variables {E : Type*} [normed_group E] [normed_space ℝ E]
 
+/-- Degree of an affine form. -/
+def degree (A : affine_form E) : ℕ := A.x.support.card
+
 /--- Given valuation for noise symbols `ε` and affine form `A`, the value of `A` with `ε` is given
 by the formula ⟦A, ε⟧ := x₀ + ∑ εᵢ * xᵢ. -/
 def eval (ε : noise) (A : affine_form E) : E :=
@@ -39,6 +42,10 @@ def set (A : affine_form E) : set E :=
 set.image (λ ε, eval ε A) ⊤
 
 section operations
+
+/-- Update affine form, i.e. add a partial. -/
+def update (A : affine_form E) (y : E) : affine_form E :=
+⟨A.x₀, A.x + finsupp.single (degree A + 1) y⟩
 
 /-- Negation of affine forms. -/
 def neg (A : affine_form E) : affine_form E :=
