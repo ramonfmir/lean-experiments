@@ -36,6 +36,9 @@ instance : inhabited (affine_form E) := ⟨const 0⟩
 /-- Degree of an affine form. -/
 def degree (A : affine_form E) : ℕ := A.x.support.card
 
+/-- Total deviation of an affine form. -/
+def total_deviation (A : affine_form E) : ℝ := ∑ i in A.x.support, ∥A.x i∥
+
 /--- Given valuation for noise symbols `ε` and affine form `A`, the value of `A` with `ε` is given
 by the formula ⟦A, ε⟧ := x₀ + ∑ εᵢ * xᵢ. -/
 def eval (ε : noise) (A : affine_form E) : E :=
@@ -148,6 +151,73 @@ let e := (∑ i in A₁.x.support, ∥A₁.x i∥) * (∑ i in A₂.x.support, �
 update ⟨A₁.x₀ * A₂.x₀, (A₁.x₀ • A₁.x) + (A₂.x₀ • A₂.x)⟩ (e • 1)
 
 end operations 
+
+section real 
+
+-- I prove that a real affine form is enclosed by the total deviation interval. 
+theorem affine_form_enclosed (A : affine_form ℝ) 
+: set A ⊆ Icc (A.x₀ - total_deviation A) (A.x₀ + total_deviation A) :=
+begin 
+  intros x hx, rcases hx with ⟨ε, ⟨hε, (hx : eval ε A = x)⟩⟩,
+  simp only [←hx, eval, total_deviation, mem_Icc], split,
+  { simp only [sub_eq_add_neg, ←finset.sum_neg_distrib], 
+    apply add_le_add (le_refl _), apply finset.sum_le_sum, intros n hn,
+    show _ ≤ _ * _,
+    by_cases h : 0 < A.x n,
+    { rw [neg_le, neg_mul_eq_neg_mul], refine le_trans _ (le_abs_self _),
+      rw [mul_le_iff_le_one_left h, neg_le], exact (ε n).2.1, },
+    { replace h := le_of_not_lt h, rw [neg_le, neg_mul_eq_mul_neg],
+      refine le_trans _ (neg_le_abs_self _),
+      rw mul_le_iff_le_one_left _,
+      { exact (ε n).2.2, },
+      { rw [lt_neg, neg_zero], exact lt_of_le_of_ne h (mem_support_iff.1 hn), }, }, },
+  { apply add_le_add (le_refl _), apply finset.sum_le_sum, intros n hn,
+    show _ * _ ≤ _,
+    by_cases h : 0 < A.x n,
+    { refine le_trans _ (le_abs_self _), rw mul_le_iff_le_one_left h, exact (ε n).2.2, },
+    { replace h := le_of_not_lt h,
+      refine le_trans _ (neg_le_abs_self _), 
+      erw [←neg_neg (_ * _), neg_mul_eq_neg_mul, neg_mul_eq_mul_neg],
+      rw mul_le_iff_le_one_left _,
+      { rw neg_le, exact (ε n).2.1, },
+      { rw [lt_neg, neg_zero], exact lt_of_le_of_ne h (mem_support_iff.1 hn), } }, }, 
+end 
+
+-- This is proved in picard_lindelof/interval_arithmetic.
+lemma mem_Icc_iff_exists_affine_form (a b : ℝ) (h : a < b)
+: ∀ x, x ∈ Icc a b ↔ 
+  ∃ γ ∈ (Icc (-1 : ℝ) (1 : ℝ)), x = ((a + b) / 2) + γ * ((b - a) / 2) :=
+begin 
+  replace h := sub_pos.2 h,
+  have h2 : 0 < (b - a) / 2 := div_pos h (by linarith),
+  intros x, split, 
+  { rintros ⟨hax, hxb⟩, 
+    use [(2*x - a - b) / (b - a)], refine ⟨⟨_, _⟩, _⟩, 
+      { simp [le_div_iff h], linarith, },
+      { simp [div_le_iff h], linarith, },
+      { simp [mul_comm, ←mul_div_assoc, mul_div_cancel_left _ (ne_of_gt h)], ring, }, },
+  { rintros ⟨γ, ⟨hγlb, hγub⟩, hx⟩, rw hx, split,
+    { apply le_add_of_sub_left_le, 
+      refine le_trans _ ((mul_le_mul_right h2).2 hγlb),
+      linarith, },
+    { apply add_le_of_le_sub_left,
+      refine le_trans ((mul_le_mul_right h2).2 hγub) _,
+      linarith, }, },
+end
+
+-- Conversely, an interval is contained in an affine form. 
+-- TODO: Integrate proof above.
+theorem interval_affine (A : affine_form ℝ) (a b : ℝ) (h : a < b)
+: Icc a b ⊆ set ⟨(a + b) / 2, single 0 ((b - a) / 2)⟩ :=
+begin 
+  intros x hx, 
+  rcases ((mem_Icc_iff_exists_affine_form a b h x).1 hx) with ⟨γ, hγ, heq⟩,
+  use (λ n, ⟨γ, hγ⟩), split, { trivial, }, simp [eval],
+  have h2 : (b - a) / 2 ≠ 0 := ne_of_gt (div_pos (sub_pos.2 h) (by linarith)),
+  rw [support_single_ne_zero h2, finset.sum_singleton, single_eq_same, heq],
+end 
+
+end real 
 
 -- THEOREM 5.
 -- lemma add_aform'E:
