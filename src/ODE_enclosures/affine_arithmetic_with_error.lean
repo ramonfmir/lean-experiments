@@ -17,6 +17,7 @@ open_locale big_operators classical
 -- Following https://www.isa-afp.org/browser_info/current/AFP/Affine_Arithmetic/document.pdf.
 section affine_arithmetic_with_error
 
+-- TODO: Is it OK to work over ℝ? Yes for now, but how easy is it to generalise?
 structure affine_form_with_error extends affine_form ℝ :=
 (error : ℝ)
 
@@ -28,6 +29,7 @@ variables {E : Type*} [normed_group E] [normed_space ℝ E]
 
 section operations 
 
+-- TODO: Move.
 lemma truncate_with_error_zero_fst (p : ℕ) 
 : (prod.fst ∘ truncate_with_error p) 0 = 0 := 
 by simp [truncate_with_error, truncate_down_zero] 
@@ -44,6 +46,7 @@ let z₀ := truncate_with_error p (A₁.x₀ + A₂.x₀),
 { x₀    := z₀.1, 
   x     := z.1, 
   error := z₀.2 + z.2 + abs A₁.error + abs A₂.error }
+-- Is this different from adding a fresh noise symbol with the error?
 
 end operations 
 

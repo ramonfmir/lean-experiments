@@ -26,7 +26,7 @@ def noise := ℕ → error_interval
 
 variable (n : ℕ)
 
-variables {E : Type*} [normed_group E] [normed_space ℝ E]
+variables {E : Type*} [normed_field E] [normed_space ℝ E]
 
 /-- Constant affine form. -/
 def const (c : E) : affine_form E := ⟨c, 0⟩
@@ -141,6 +141,11 @@ end
 : eval ε (A₁ + A₂) = (eval ε A₁) + (eval ε A₂) :=
 by { simp only [eval_add_eq_def], dsimp [eval], abel, }
 
+/-- Multiplication of affine forms. -/
+def mul (A₁ A₂ : affine_form E) : affine_form E :=
+-- TODO: Does this calculation of the error work for ℝ^n?
+let e := (∑ i in A₁.x.support, ∥A₁.x i∥) * (∑ i in A₂.x.support, ∥A₂.x i∥) in
+update ⟨A₁.x₀ * A₂.x₀, (A₁.x₀ • A₁.x) + (A₂.x₀ • A₂.x)⟩ (e • 1)
 
 end operations 
 

@@ -41,9 +41,11 @@ lemma truncate_up_mono (p : ℕ) (x y : ℝ) (h : x ≤ y)
 : truncate_up p x ≤ truncate_up p x :=
 by simp [truncate_up, round_up_mono]  
 
+-- We need something like ⌈a * b⌉ ≥ ⌈a⌉ * b if b ≥ 1. Then we should
+-- assume that p - ⌊log₂ r⌋ ≥ 1. That is not great, it holds regardless...
 lemma truncate_up_ge (p : ℕ) (r : ℝ) : r ≤ truncate_up p r :=
 begin 
-  simp [truncate_up, round_up], sorry,
+  simp [truncate_up, round_up], sorry, 
 end 
 
 -- Def trunc-bound-eucl (p. 152)
