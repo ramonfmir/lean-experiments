@@ -6,4 +6,4 @@ path = "src"
 
 [dependencies]
 smt2_interface = {git = "https://github.com/leanprover/smt2_interface.git", rev = "7ff0ce248b68ea4db2a2d4966a97b5786da05ed7"}
-mathlib = {git = "https://github.com/leanprover/mathlib", rev = "61f63649166658dad1931c4de51e1122a1a852e8"}
+mathlib = {git = "https://github.com/leanprover/mathlib", rev = "6d1d4c13909d7044fb7e2bcc67df63d4b2ef7602"}
